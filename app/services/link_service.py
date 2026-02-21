@@ -126,9 +126,6 @@ class LinkService:
                 keywords=keywords_json,
                 memo=memo,
             )
-            if link is None:
-                await self._telegram.send_message(telegram_id, "⚠️ 이미 저장된 메모입니다.")
-                return
 
             # 3. Embed & chunk 저장
             raw_chunks = _split_chunks(memo)
