@@ -42,14 +42,15 @@ async def notion_callback(
     token_data = await notion.exchange_code(code)
     access_token: str = token_data["access_token"]
 
-    # 봇이 접근 가능한 첫 번째 페이지를 부모로 사용
+    # 접근 가능한 첫 번째 페이지 하위에 LinkdBot DB 자동 생성
     page_id = await notion.get_accessible_page_id(access_token)
+    database_id = await notion.create_database(access_token, page_id) if page_id else None
 
     user_repo = UserRepository(db)
     await user_repo.upsert_notion_credentials(
         telegram_id=telegram_id,
         notion_access_token=access_token,
-        notion_page_id=page_id,
+        notion_database_id=database_id,
     )
 
     # 텔레그램으로 연동 완료 알림
