@@ -61,10 +61,13 @@ class TelegramClient:
                 "• 페이지 내용 요약\n"
                 "• 카테고리 분류\n"
                 "• 키워드 추출\n"
-                "• Notion 페이지 자동 생성\n\n"
-                "<b>3️⃣ 링크 검색</b>\n"
-                "저장한 링크를 AI로 검색하려면:\n"
-                "<code>/search [검색어]</code>\n"
+                "• Notion DB 자동 저장\n\n"
+                "<b>3️⃣ 메모 저장</b>\n"
+                "<code>/memo [내용]</code>\n"
+                "예시: <code>/memo 오늘 배운 파이썬 팁 정리</code>\n\n"
+                "<b>4️⃣ 검색</b>\n"
+                "텍스트를 입력하거나 /search를 사용하면 AI로 검색해요\n"
+                "<code>/search [검색어]</code> 또는 바로 입력\n"
                 "예시: <code>/search 머신러닝 논문</code>"
             ),
         )
@@ -84,6 +87,24 @@ class TelegramClient:
                 "링크를 보내보세요! 🔗"
             ),
         )
+
+    async def send_search_results(self, chat_id: int, query: str, results: list[dict]) -> None:
+        """검색 결과 전송."""
+        if not results:
+            await self.send_message(chat_id, f"🔍 <b>{query}</b>\n\n저장된 링크 중 관련 내용을 찾지 못했어요.")
+            return
+
+        lines = [f"🔍 <b>{query}</b> 검색 결과\n"]
+        for i, r in enumerate(results, 1):
+            title = r.get("title", "제목 없음")
+            url = r.get("url")
+            similarity = r.get("similarity", 0)
+            line = f"{i}. <b>{title}</b> ({similarity:.0%})"
+            if url:
+                line += f"\n    <a href=\"{url}\">{url}</a>"
+            lines.append(line)
+
+        await self.send_message(chat_id, "\n".join(lines))
 
     async def set_webhook(self, url: str) -> None:
         async with httpx.AsyncClient() as client:

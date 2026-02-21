@@ -57,14 +57,25 @@ async def telegram_webhook(
             await telegram.send_notion_connect_button(telegram_id, login_url)
         return {"ok": True}
 
+    if text.startswith("/memo "):
+        memo_text = text[6:].strip()
+        if memo_text:
+            logger.info("Processing memo from %s", telegram_id)
+            background_tasks.add_task(link_service.process_memo, telegram_id, memo_text)
+        return {"ok": True}
+
     urls = _URL_RE.findall(text)
     if urls:
         memo = _URL_RE.sub("", text).strip() or None
         for url in urls:
             logger.info("Processing URL from %s: %s", telegram_id, url)
             background_tasks.add_task(link_service.process_link, telegram_id, url, memo)
-    elif text.strip():
-        logger.info("Processing memo from %s", telegram_id)
-        background_tasks.add_task(link_service.process_memo, telegram_id, text.strip())
+        return {"ok": True}
+
+    query = text[8:].strip() if text.startswith("/search ") else text.strip()
+    if query:
+        logger.info("Searching for %s from %s", query, telegram_id)
+        results = await link_service.search(telegram_id, query)
+        await telegram.send_search_results(telegram_id, query, results)
 
     return {"ok": True}
