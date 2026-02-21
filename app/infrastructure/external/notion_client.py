@@ -35,6 +35,7 @@ class NotionClient:
                     "page_size": 1,
                 },
             )
+            resp.raise_for_status()
             data = resp.json()
             results = data.get("results", [])
             return results[0]["id"] if results else None
@@ -75,9 +76,9 @@ class NotionClient:
     ) -> str:
         """Notion DB에 행 추가 후 페이지 URL 반환."""
         properties: dict = {
-            "Name":     {"title": [{"text": {"content": title}}]},
-            "Category": {"select": {"name": category}},
-            "Keywords": {"multi_select": [{"name": kw} for kw in keywords]},
+            "Name":     {"title": [{"text": {"content": title[:2000]}}]},
+            "Category": {"select": {"name": category[:100]}},
+            "Keywords": {"multi_select": [{"name": kw[:100]} for kw in keywords]},
             "Summary":  {"rich_text": [{"text": {"content": summary[:2000]}}]},
             "Date":     {"date": {"start": date.today().isoformat()}},
         }
