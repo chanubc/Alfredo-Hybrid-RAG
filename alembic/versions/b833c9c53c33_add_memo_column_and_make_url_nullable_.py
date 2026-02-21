@@ -24,5 +24,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    op.execute(sa.text("DELETE FROM links WHERE url IS NULL"))
     op.alter_column('links', 'url', existing_type=sa.VARCHAR(), nullable=False)
     op.drop_column('links', 'memo')
