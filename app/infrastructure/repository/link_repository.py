@@ -20,24 +20,32 @@ class LinkRepository:
         url: str | None = None,
         memo: str | None = None,
     ) -> Link | None:
-        """링크/메모 저장. URL 중복(user_id + url)이면 None 반환."""
-        stmt = (
-            insert(Link)
-            .values(
-                user_id=user_id,
-                url=url,
-                title=title,
-                summary=summary,
-                category=category,
-                keywords=keywords,
-                memo=memo,
-            )
-            .on_conflict_do_nothing(constraint="uq_user_url")
-            .returning(Link)
+        """링크/메모 저장. URL이 있으면 중복(user_id + url) 시 None 반환."""
+        values = dict(
+            user_id=user_id,
+            url=url,
+            title=title,
+            summary=summary,
+            category=category,
+            keywords=keywords,
+            memo=memo,
         )
-        result = await self._db.execute(stmt)
+        if url is not None:
+            stmt = (
+                insert(Link)
+                .values(**values)
+                .on_conflict_do_nothing(constraint="uq_user_url")
+                .returning(Link)
+            )
+            result = await self._db.execute(stmt)
+            await self._db.commit()
+            return result.scalar_one_or_none()
+
+        link = Link(**values)
+        self._db.add(link)
         await self._db.commit()
-        return result.scalar_one_or_none()
+        await self._db.refresh(link)
+        return link
 
     async def save_chunks(
         self,

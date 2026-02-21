@@ -87,7 +87,7 @@ class LinkService:
 
             # 5. Notion 저장 (optional)
             notion_url = await self._save_to_notion(
-                telegram_id, title, summary, category, keywords, url
+                telegram_id, title, summary, category, keywords, url, memo
             )
 
             # 6. 완료 알림
@@ -126,9 +126,6 @@ class LinkService:
                 keywords=keywords_json,
                 memo=memo,
             )
-            if link is None:
-                await self._telegram.send_message(telegram_id, "⚠️ 이미 저장된 메모입니다.")
-                return
 
             # 3. Embed & chunk 저장
             raw_chunks = _split_chunks(memo)
@@ -138,7 +135,7 @@ class LinkService:
 
             # 4. Notion 저장 (optional)
             notion_url = await self._save_to_notion(
-                telegram_id, title, summary, category, keywords, url=None
+                telegram_id, title, summary, category, keywords, url=None, memo=memo
             )
 
             # 5. 완료 알림
@@ -200,21 +197,23 @@ class LinkService:
         category: str,
         keywords: list[str],
         url: str | None,
+        memo: str | None = None,
     ) -> str:
         user_repo = UserRepository(self._db)
         token = await user_repo.get_decrypted_token(telegram_id)
         user = await user_repo.get_by_telegram_id(telegram_id)
-        if not token or not user or not user.notion_page_id:
+        if not token or not user or not user.notion_database_id:
             return ""
         try:
-            return await self._notion.create_page(
+            return await self._notion.create_database_entry(
                 access_token=token,
-                parent_page_id=user.notion_page_id,
+                database_id=user.notion_database_id,
                 title=title,
-                summary=summary,
                 category=category,
                 keywords=keywords,
+                summary=summary,
                 url=url,
+                memo=memo,
             )
         except Exception:
             return ""
