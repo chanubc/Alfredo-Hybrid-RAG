@@ -115,7 +115,7 @@ class LinkService:
                 title=memo[:50],
                 summary="",
                 category="Memo",
-                keywords="[]",
+                keywords=json.dumps([], ensure_ascii=False),
                 memo=memo,
             )
 
@@ -125,15 +125,15 @@ class LinkService:
                 embeddings = await self._openai.embed(raw_chunks)
                 await link_repo.save_chunks(link.id, list(zip(raw_chunks, embeddings)))
 
-            # 3. Notion 저장 (optional)
-            await self._save_to_notion(
+            # 3. Notion 저장 (optional) — 실제 저장 성공 여부로 링크 노출 결정
+            notion_page_url = await self._save_to_notion(
                 telegram_id, memo[:50], "", "Memo", [], url=None, memo=memo
             )
 
             # 4. 완료 알림
-            notion_db_url = await self._get_notion_db_url(telegram_id)
             msg = "✅ 메모 저장 완료!"
-            if notion_db_url:
+            if notion_page_url:
+                notion_db_url = await self._get_notion_db_url(telegram_id)
                 msg += f"\n\n📓 Notion: {notion_db_url}"
             await self._telegram.send_message(telegram_id, msg)
 
