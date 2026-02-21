@@ -74,11 +74,11 @@ class LinkRepository:
                 l.category,
                 l.keywords,
                 c.content   AS chunk_content,
-                1 - (c.embedding <=> :emb::vector) AS similarity
+                1 - (c.embedding <=> CAST(:emb AS vector)) AS similarity
             FROM chunks c
             JOIN links l ON c.link_id = l.id
             WHERE l.user_id = :user_id
-            ORDER BY c.embedding <=> :emb::vector
+            ORDER BY c.embedding <=> CAST(:emb AS vector)
             LIMIT :top_k
         """)
         result = await self._db.execute(
