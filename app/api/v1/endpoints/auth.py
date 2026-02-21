@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, Query
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.infrastructure.database import get_db
 from app.infrastructure.external.notion_client import NotionClient
+from app.infrastructure.external.telegram_client import TelegramClient
 from app.infrastructure.repository.user_repository import UserRepository
 
 router = APIRouter()
@@ -47,8 +48,13 @@ async def notion_callback(
         notion_page_id=page_id,
     )
 
-    return {
-        "message": "Notion 연동 완료!",
-        "telegram_id": telegram_id,
-        "page_id": page_id,
-    }
+    # 텔레그램으로 연동 완료 알림
+    await TelegramClient().send_message(
+        telegram_id,
+        "✅ Notion 연동이 완료됐습니다!\n이제 링크를 전송하면 자동으로 저장됩니다.",
+    )
+
+    return HTMLResponse(
+        content="<h2>✅ Notion 연동 완료!</h2><p>텔레그램으로 돌아가서 링크를 전송해보세요.</p>",
+        status_code=200,
+    )
