@@ -26,6 +26,12 @@ async def telegram_webhook(
 ):
     """텔레그램 웹훅 수신 엔드포인트."""
     data = await request.json()
+
+    if callback := data.get("callback_query"):
+        if callback.get("data") == "help":
+            await telegram.send_help_message(callback["from"]["id"])
+        return {"ok": True}
+
     message = data.get("message") or data.get("channel_post")
     if not message:
         return {"ok": True}
