@@ -68,7 +68,7 @@ class TelegramClient:
                 "<b>4️⃣ 검색</b>\n"
                 "텍스트를 입력하거나 /search를 사용하면 AI로 검색해요\n"
                 "<code>/search [검색어]</code> 또는 바로 입력\n"
-                "예시: <code>/search 머신러닝 논문</code>"
+                "예시: <code>/search 머신러닝 논문</code> 또는 <code>머신러닝 논문</code>"
             ),
         )
 
