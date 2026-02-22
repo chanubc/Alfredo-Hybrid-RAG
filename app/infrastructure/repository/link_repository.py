@@ -13,35 +13,49 @@ class LinkRepository:
     async def save_link(
         self,
         user_id: int,
+        url: str,
         title: str,
         summary: str,
         category: str,
         keywords: str,
-        url: str | None = None,
         memo: str | None = None,
     ) -> Link | None:
-        """링크/메모 저장. URL이 있으면 중복(user_id + url) 시 None 반환."""
-        values = dict(
+        """URL 링크 저장. 중복(user_id + url) 시 None 반환."""
+        stmt = (
+            insert(Link)
+            .values(
+                user_id=user_id,
+                url=url,
+                title=title,
+                summary=summary,
+                category=category,
+                keywords=keywords,
+                memo=memo,
+            )
+            .on_conflict_do_nothing(constraint="uq_user_url")
+            .returning(Link)
+        )
+        result = await self._db.execute(stmt)
+        await self._db.commit()
+        return result.scalar_one_or_none()
+
+    async def save_memo(
+        self,
+        user_id: int,
+        title: str,
+        keywords: str,
+        memo: str,
+    ) -> Link:
+        """메모 저장. 중복 체크 없이 항상 저장."""
+        link = Link(
             user_id=user_id,
-            url=url,
+            url=None,
             title=title,
-            summary=summary,
-            category=category,
+            summary="",
+            category="Memo",
             keywords=keywords,
             memo=memo,
         )
-        if url is not None:
-            stmt = (
-                insert(Link)
-                .values(**values)
-                .on_conflict_do_nothing(constraint="uq_user_url")
-                .returning(Link)
-            )
-            result = await self._db.execute(stmt)
-            await self._db.commit()
-            return result.scalar_one_or_none()
-
-        link = Link(**values)
         self._db.add(link)
         await self._db.commit()
         await self._db.refresh(link)

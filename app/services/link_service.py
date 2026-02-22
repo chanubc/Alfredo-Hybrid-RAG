@@ -109,12 +109,9 @@ class LinkService:
             user_repo = UserRepository(self._db)
             link_repo = LinkRepository(self._db)
             await user_repo.ensure_exists(telegram_id)
-            link = await link_repo.save_link(
+            link = await link_repo.save_memo(
                 user_id=telegram_id,
-                url=None,
                 title=memo[:50],
-                summary="",
-                category="Memo",
                 keywords=json.dumps([], ensure_ascii=False),
                 memo=memo,
             )
