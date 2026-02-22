@@ -1,4 +1,5 @@
 import json
+import re
 
 import httpx
 from bs4 import BeautifulSoup
@@ -9,6 +10,9 @@ from app.infrastructure.external.telegram_client import TelegramClient
 from app.infrastructure.llm.openai_client import OpenAIClient
 from app.infrastructure.repository.link_repository import LinkRepository
 from app.infrastructure.repository.user_repository import UserRepository
+
+
+_URL_RE = re.compile(r"https?://\S+")
 
 
 def _split_chunks(text: str, size: int = 800) -> list[str]:
@@ -109,12 +113,9 @@ class LinkService:
             user_repo = UserRepository(self._db)
             link_repo = LinkRepository(self._db)
             await user_repo.ensure_exists(telegram_id)
-            link = await link_repo.save_link(
+            link = await link_repo.save_memo(
                 user_id=telegram_id,
-                url=None,
                 title=memo[:50],
-                summary="",
-                category="Memo",
                 keywords=json.dumps([], ensure_ascii=False),
                 memo=memo,
             )
@@ -149,6 +150,12 @@ class LinkService:
         link_repo = LinkRepository(self._db)
         [embedding] = await self._openai.embed([query])
         return await link_repo.search_similar(telegram_id, embedding, top_k)
+
+    def extract_urls(self, text: str) -> tuple[list[str], str | None]:
+        """텍스트에서 URL과 memo 분리. (urls, memo) 반환."""
+        urls = _URL_RE.findall(text)
+        memo = _URL_RE.sub("", text).strip() or None if len(urls) == 1 else None
+        return urls, memo
 
     # ── Private ─────────────────────────────────────────────────────────────
 
