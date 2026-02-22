@@ -87,6 +87,22 @@ app/
 - DI는 외부 라이브러리 없이 FastAPI `Depends`만 사용 (`app/api/dependencies.py`)
 - 새 파일 생성 전 기존 디렉토리 구조 확인 후 적절한 위치에 배치
 
+### DI 규칙 (안티패턴 금지)
+
+- `dependencies.py`에 팩토리가 등록된 클래스(`NotionClient`, `TelegramClient`, `UserRepository` 등)는 Service/Endpoint 내부에서 직접 인스턴스화 **금지**
+- 모든 의존성은 반드시 `__init__` 파라미터로 주입받을 것
+
+```python
+# ❌ 금지
+async def some_method(self):
+    repo = UserRepository(self._db)  # 내부 직접 인스턴스화
+
+# ✅ 올바른 방식
+class SomeService:
+    def __init__(self, user_repo: UserRepository) -> None:
+        self._user_repo = user_repo  # __init__으로 주입
+```
+
 ## Phase Specs
 
 코드 작성 전 해당 Phase 문서를 먼저 읽을 것:
