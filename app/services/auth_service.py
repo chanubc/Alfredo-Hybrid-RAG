@@ -1,5 +1,7 @@
 import logging
 
+from app.config import settings
+from app.infrastructure import state_store
 from app.infrastructure.external.notion_client import NotionClient
 from app.infrastructure.external.telegram_client import TelegramClient
 from app.infrastructure.repository.user_repository import UserRepository
@@ -17,6 +19,16 @@ class AuthService:
         self._notion = notion
         self._telegram = telegram
         self._user_repo = user_repo
+
+    def create_login_url(self, telegram_id: int) -> str:
+        """state 토큰을 생성하고 Notion OAuth 로그인 URL을 반환."""
+        token = state_store.create(telegram_id)
+        login_base = settings.NOTION_REDIRECT_URI.replace("/callback", "/login")
+        return f"{login_base}?token={token}"
+
+    def consume_state(self, token: str) -> int | None:
+        """state 토큰을 소비하고 매핑된 telegram_id를 반환."""
+        return state_store.consume(token)
 
     async def complete_notion_oauth(self, code: str, telegram_id: int) -> None:
         """Notion OAuth 완료 — 토큰 교환, DB 생성, 크리덴셜 저장, 알림 전송."""

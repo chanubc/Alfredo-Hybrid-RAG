@@ -7,16 +7,18 @@ logger = logging.getLogger(__name__)
 
 from app.api.dependencies import get_auth_service
 from app.config import settings
-from app.infrastructure.state_store import consume as consume_state_token
 from app.services.auth_service import AuthService
 
 router = APIRouter()
 
 
 @router.get("/notion/login")
-async def notion_login(token: str = Query(...)):
+async def notion_login(
+    token: str = Query(...),
+    auth_service: AuthService = Depends(get_auth_service),
+):
     """Notion OAuth 인증 시작 — Notion 로그인 페이지로 리다이렉트."""
-    telegram_id = consume_state_token(token)
+    telegram_id = auth_service.consume_state(token)
     if telegram_id is None:
         raise HTTPException(status_code=400, detail="유효하지 않거나 만료된 링크입니다.")
     url = (
