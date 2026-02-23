@@ -2,6 +2,7 @@ import logging
 
 from fastapi import BackgroundTasks
 
+from app.domain.text import extract_urls
 from app.infrastructure.external.telegram_client import TelegramClient
 from app.infrastructure.repository.user_repository import UserRepository
 from app.services.auth_service import AuthService
@@ -44,7 +45,7 @@ class WebhookService:
         elif text.startswith("/search"):
             await self._handle_search(telegram_id, text)
         else:
-            urls, memo = self._link_service.extract_urls(text)
+            urls, memo = extract_urls(text)
             if urls:
                 await self._handle_url(telegram_id, urls, memo, background_tasks)
             else:
