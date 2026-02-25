@@ -3,7 +3,7 @@ import logging
 from fastapi import BackgroundTasks
 
 from app.domain.text import extract_urls
-from app.infrastructure.external.telegram_client import TelegramClient
+from app.domain.repositories.i_telegram_repository import ITelegramRepository
 from app.domain.repositories.i_user_repository import IUserRepository
 from app.services.auth_service import AuthService
 from app.services.link_service import LinkService
@@ -19,7 +19,7 @@ class WebhookService:
         link_service: LinkService,
         memo_service: MemoService,
         search_service: SearchService,
-        telegram: TelegramClient,
+        telegram: ITelegramRepository,
         user_repo: IUserRepository,
         auth_service: AuthService,
     ) -> None:
@@ -81,6 +81,7 @@ class WebhookService:
         memo_text = text[5:].strip()
         if memo_text:
             logger.info("Processing memo from %s", telegram_id)
+            await self._telegram.send_message(telegram_id, "📝 메모를 저장하는 중입니다...")
             background_tasks.add_task(
                 self._memo_service.process_memo, telegram_id, memo_text
             )
@@ -111,6 +112,7 @@ class WebhookService:
     ) -> None:
         for url in urls:
             logger.info("Processing URL from %s: %s", telegram_id, url)
+            await self._telegram.send_message(telegram_id, "🔍 링크를 저장하는 중입니다...")
             background_tasks.add_task(
                 self._link_service.process_link, telegram_id, url, memo
             )

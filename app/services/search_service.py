@@ -1,9 +1,9 @@
+from app.domain.repositories.i_openai_repository import IOpenAIRepository
 from app.domain.repositories.i_chunk_repository import IChunkRepository
-from app.infrastructure.llm.openai_client import OpenAIClient
 
 
 class SearchService:
-    def __init__(self, openai: OpenAIClient, chunk_repo: IChunkRepository) -> None:
+    def __init__(self, openai: IOpenAIRepository, chunk_repo: IChunkRepository) -> None:
         self._openai = openai
         self._chunk_repo = chunk_repo
 

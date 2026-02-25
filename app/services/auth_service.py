@@ -3,10 +3,10 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.domain.ports.i_state_store import IStateStore
+from app.domain.repositories.i_notion_repository import INotionRepository
+from app.domain.repositories.i_state_store import IStateStore
+from app.domain.repositories.i_telegram_repository import ITelegramRepository
 from app.domain.repositories.i_user_repository import IUserRepository
-from app.infrastructure.external.notion_client import NotionClient
-from app.infrastructure.external.telegram_client import TelegramClient
 
 logger = logging.getLogger(__name__)
 
@@ -15,8 +15,8 @@ class AuthService:
     def __init__(
         self,
         db: AsyncSession,
-        notion: NotionClient,
-        telegram: TelegramClient,
+        notion: INotionRepository,
+        telegram: ITelegramRepository,
         user_repo: IUserRepository,
         state_store: IStateStore,
     ) -> None:

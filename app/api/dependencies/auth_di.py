@@ -3,20 +3,22 @@ from functools import lru_cache
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domain.repositories.i_notion_repository import INotionRepository
+from app.domain.repositories.i_telegram_repository import ITelegramRepository
 from app.infrastructure.database import get_db
-from app.infrastructure.external.notion_client import NotionClient
-from app.infrastructure.external.telegram_client import TelegramClient
+from app.infrastructure.external.notion_client import NotionRepository
+from app.infrastructure.external.telegram_client import TelegramRepository
 from app.infrastructure.repository.user_repository import UserRepository
 from app.infrastructure.state_store import InMemoryStateStore
 from app.services.auth_service import AuthService
 
 
-def get_notion_client() -> NotionClient:
-    return NotionClient()
+def get_notion_client() -> INotionRepository:
+    return NotionRepository()
 
 
-def get_telegram_client() -> TelegramClient:
-    return TelegramClient()
+def get_telegram_client() -> ITelegramRepository:
+    return TelegramRepository()
 
 
 def get_user_repository(db: AsyncSession = Depends(get_db)) -> UserRepository:
@@ -31,8 +33,8 @@ def get_state_store() -> InMemoryStateStore:
 
 def get_auth_service(
     db: AsyncSession = Depends(get_db),
-    notion: NotionClient = Depends(get_notion_client),
-    telegram: TelegramClient = Depends(get_telegram_client),
+    notion: INotionRepository = Depends(get_notion_client),
+    telegram: ITelegramRepository = Depends(get_telegram_client),
     user_repo: UserRepository = Depends(get_user_repository),
     state_store: InMemoryStateStore = Depends(get_state_store),
 ) -> AuthService:
