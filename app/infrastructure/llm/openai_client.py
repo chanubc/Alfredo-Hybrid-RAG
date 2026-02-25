@@ -3,9 +3,10 @@ import json
 from openai import AsyncOpenAI
 
 from app.config import settings
+from app.domain.repositories.i_openai_repository import IOpenAIRepository
 
 
-class OpenAIClient:
+class OpenAIRepository(IOpenAIRepository):
     def __init__(self) -> None:
         self._client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 

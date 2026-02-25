@@ -3,13 +3,13 @@ import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domain.repositories.i_openai_repository import IOpenAIRepository
+from app.domain.repositories.i_scraper_repository import IScraperRepository
+from app.domain.repositories.i_telegram_repository import ITelegramRepository
 from app.domain.repositories.i_chunk_repository import IChunkRepository
 from app.domain.repositories.i_link_repository import ILinkRepository
 from app.domain.repositories.i_user_repository import IUserRepository
 from app.domain.text import split_chunks
-from app.infrastructure.external.scraper_client import ScraperClient
-from app.infrastructure.external.telegram_client import TelegramClient
-from app.infrastructure.llm.openai_client import OpenAIClient
 from app.services.notion_service import NotionService
 
 logger = logging.getLogger(__name__)
@@ -19,10 +19,10 @@ class LinkService:
     def __init__(
         self,
         db: AsyncSession,
-        openai: OpenAIClient,
-        scraper: ScraperClient,
+        openai: IOpenAIRepository,
+        scraper: IScraperRepository,
         notion_svc: NotionService,
-        telegram: TelegramClient,
+        telegram: ITelegramRepository,
         user_repo: IUserRepository,
         link_repo: ILinkRepository,
         chunk_repo: IChunkRepository,
@@ -38,7 +38,6 @@ class LinkService:
 
     async def process_link(self, telegram_id: int, url: str, memo: str | None = None) -> None:
         """링크 처리 파이프라인 (BackgroundTask로 비동기 실행)."""
-        await self._telegram.send_message(telegram_id, "🔍 처리 중...")
         try:
             # 1. Scrape
             content = await self._scraper.scrape(url)

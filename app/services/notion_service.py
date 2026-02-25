@@ -1,9 +1,9 @@
+from app.domain.repositories.i_notion_repository import INotionRepository
 from app.domain.repositories.i_user_repository import IUserRepository
-from app.infrastructure.external.notion_client import NotionClient
 
 
 class NotionService:
-    def __init__(self, user_repo: IUserRepository, notion: NotionClient) -> None:
+    def __init__(self, user_repo: IUserRepository, notion: INotionRepository) -> None:
         self._user_repo = user_repo
         self._notion = notion
 

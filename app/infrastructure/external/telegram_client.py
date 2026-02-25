@@ -2,9 +2,10 @@ import html
 import httpx
 
 from app.config import settings
+from app.domain.repositories.i_telegram_repository import ITelegramRepository
 
 
-class TelegramClient:
+class TelegramRepository(ITelegramRepository):
     @property
     def _base(self) -> str:
         return f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}"

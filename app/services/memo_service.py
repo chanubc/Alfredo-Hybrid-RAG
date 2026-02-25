@@ -3,12 +3,12 @@ import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domain.repositories.i_openai_repository import IOpenAIRepository
+from app.domain.repositories.i_telegram_repository import ITelegramRepository
 from app.domain.repositories.i_chunk_repository import IChunkRepository
 from app.domain.repositories.i_link_repository import ILinkRepository
 from app.domain.repositories.i_user_repository import IUserRepository
 from app.domain.text import split_chunks
-from app.infrastructure.external.telegram_client import TelegramClient
-from app.infrastructure.llm.openai_client import OpenAIClient
 from app.services.notion_service import NotionService
 
 logger = logging.getLogger(__name__)
@@ -18,9 +18,9 @@ class MemoService:
     def __init__(
         self,
         db: AsyncSession,
-        openai: OpenAIClient,
+        openai: IOpenAIRepository,
         notion_svc: NotionService,
-        telegram: TelegramClient,
+        telegram: ITelegramRepository,
         user_repo: IUserRepository,
         link_repo: ILinkRepository,
         chunk_repo: IChunkRepository,
@@ -35,7 +35,6 @@ class MemoService:
 
     async def process_memo(self, telegram_id: int, memo: str) -> None:
         """메모 처리 파이프라인 (URL 없는 텍스트, AI 분석 없이 저장)."""
-        await self._telegram.send_message(telegram_id, "📝 메모 저장 중...")
         try:
             # 1. DB 저장 (AI 분석 없이)
             logger.info(f"[메모 처리 시작] 유저: {telegram_id}, 내용: {memo}")

@@ -3,12 +3,13 @@ from datetime import datetime, timezone
 import httpx
 
 from app.config import settings
+from app.domain.repositories.i_notion_repository import INotionRepository
 
 _BASE = "https://api.notion.com/v1"
 _VERSION = "2022-06-28"
 
 
-class NotionClient:
+class NotionRepository(INotionRepository):
     async def exchange_code(self, code: str) -> dict:
         """OAuth authorization code → access token 교환."""
         async with httpx.AsyncClient() as client:

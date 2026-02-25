@@ -1,8 +1,10 @@
 import httpx
 from bs4 import BeautifulSoup
 
+from app.domain.repositories.i_scraper_repository import IScraperRepository
 
-class ScraperClient:
+
+class ScraperRepository(IScraperRepository):
     async def scrape(self, url: str) -> str:
         """OG 메타태그 기반 콘텐츠 추출."""
         headers = {"User-Agent": "Mozilla/5.0 (compatible; LinkdBot/1.0)"}

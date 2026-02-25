@@ -6,11 +6,12 @@ from app.api.dependencies.auth_di import (
     get_telegram_client,
     get_user_repository,
 )
+from app.domain.repositories.i_openai_repository import IOpenAIRepository
+from app.domain.repositories.i_scraper_repository import IScraperRepository
+from app.domain.repositories.i_telegram_repository import ITelegramRepository
 from app.infrastructure.database import get_db
-from app.infrastructure.external.notion_client import NotionClient
-from app.infrastructure.external.scraper_client import ScraperClient
-from app.infrastructure.external.telegram_client import TelegramClient
-from app.infrastructure.llm.openai_client import OpenAIClient
+from app.infrastructure.external.scraper_client import ScraperRepository
+from app.infrastructure.llm.openai_client import OpenAIRepository
 from app.infrastructure.repository.chunk_repository import ChunkRepository
 from app.infrastructure.repository.link_repository import LinkRepository
 from app.infrastructure.repository.user_repository import UserRepository
@@ -20,12 +21,12 @@ from app.services.notion_service import NotionService
 from app.services.search_service import SearchService
 
 
-def get_openai_client() -> OpenAIClient:
-    return OpenAIClient()
+def get_openai_client() -> IOpenAIRepository:
+    return OpenAIRepository()
 
 
-def get_scraper_client() -> ScraperClient:
-    return ScraperClient()
+def get_scraper_client() -> IScraperRepository:
+    return ScraperRepository()
 
 
 def get_link_repository(db: AsyncSession = Depends(get_db)) -> LinkRepository:
@@ -44,7 +45,7 @@ def get_notion_service(
 
 
 def get_search_service(
-    openai: OpenAIClient = Depends(get_openai_client),
+    openai: IOpenAIRepository = Depends(get_openai_client),
     chunk_repo: ChunkRepository = Depends(get_chunk_repository),
 ) -> SearchService:
     return SearchService(openai, chunk_repo)
@@ -52,9 +53,9 @@ def get_search_service(
 
 def get_memo_service(
     db: AsyncSession = Depends(get_db),
-    openai: OpenAIClient = Depends(get_openai_client),
+    openai: IOpenAIRepository = Depends(get_openai_client),
     notion_svc: NotionService = Depends(get_notion_service),
-    telegram: TelegramClient = Depends(get_telegram_client),
+    telegram: ITelegramRepository = Depends(get_telegram_client),
     user_repo: UserRepository = Depends(get_user_repository),
     link_repo: LinkRepository = Depends(get_link_repository),
     chunk_repo: ChunkRepository = Depends(get_chunk_repository),
@@ -64,10 +65,10 @@ def get_memo_service(
 
 def get_link_service(
     db: AsyncSession = Depends(get_db),
-    openai: OpenAIClient = Depends(get_openai_client),
-    scraper: ScraperClient = Depends(get_scraper_client),
+    openai: IOpenAIRepository = Depends(get_openai_client),
+    scraper: IScraperRepository = Depends(get_scraper_client),
     notion_svc: NotionService = Depends(get_notion_service),
-    telegram: TelegramClient = Depends(get_telegram_client),
+    telegram: ITelegramRepository = Depends(get_telegram_client),
     user_repo: UserRepository = Depends(get_user_repository),
     link_repo: LinkRepository = Depends(get_link_repository),
     chunk_repo: ChunkRepository = Depends(get_chunk_repository),
