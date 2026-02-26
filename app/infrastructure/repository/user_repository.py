@@ -1,12 +1,9 @@
-from cryptography.fernet import Fernet
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
+from app.core.security import fernet as _fernet
 from app.domain.repositories.i_user_repository import IUserRepository
 from app.models.user import User
-
-_fernet = Fernet(settings.ENCRYPTION_KEY.encode())
 
 
 class UserRepository(IUserRepository):
