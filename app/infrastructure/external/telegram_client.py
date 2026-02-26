@@ -1,8 +1,12 @@
 import html
+import logging
+
 import httpx
 
 from app.config import settings
 from app.domain.repositories.i_telegram_repository import ITelegramRepository
+
+logger = logging.getLogger(__name__)
 
 
 class TelegramRepository(ITelegramRepository):
@@ -155,5 +159,5 @@ class TelegramRepository(ITelegramRepository):
                 resp.raise_for_status()
                 return True
         except Exception as e:
-            print(f"Failed to register Telegram commands: {e}")
+            logger.error("Failed to register Telegram commands: %s", e)
             return False
