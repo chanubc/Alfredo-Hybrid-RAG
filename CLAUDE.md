@@ -54,38 +54,11 @@ pip install -r requirements.txt
 
 ## 🎮 Coding Conventions
 
-### Type Hints & Async
-- 모든 함수/메서드에 **Type Hint** 필수
-- DB/API 등 모든 I/O는 **async/await** 사용
-
-### DI 규칙 (핵심)
-```python
-# ❌ 금지: 내부에서 직접 인스턴스화
-class SomeUseCase:
-    def __init__(self):
-        self.repo = UserRepository(self.db)
-
-# ✅ 올바른 방식: Interface로 의존성 선언
-class SomeUseCase:
-    def __init__(self, user_repo: IUserRepository):
-        self.repo = user_repo
-
-# ✅ DI 팩토리에서만 concrete class 생성
-def get_some_usecase(
-    user_repo: UserRepository = Depends(get_user_repository),
-) -> SomeUseCase:
-    return SomeUseCase(user_repo)
-```
-
-### Commit Convention
-- Format: `#이슈번호 [prefix] : 메시지`
-- Prefixes: `[feat]`, `[fix]`, `[add]`, `[chore]`, `[docs]`, `[refactor]`, `[test]`
-- Example: `#42 [feat] : Add search_usecase`
-
-### PR Convention
-- Title: `[PREFIX/#이슈번호] 작업 제목`
-- Use `--merge` flag when merging (no squash/rebase)
-- No URL in PR body
+See [`.claude/coding_rules.md`](./.claude/coding_rules.md) for detailed conventions including:
+- Type Hints & Async requirements
+- DI strategy (Interface types, DI factories)
+- Domain, Repository, Service rules
+- Commit & PR conventions
 
 ---
 
@@ -115,7 +88,7 @@ Essential reading before coding:
 **Before starting work:**
 1. Read relevant Phase spec (`.claude/phases/phase{N}.md`)
 2. Check architecture (`.claude/architecture.md`)
-3. Follow coding conventions above
+3. Follow coding conventions (see [`.claude/coding_rules.md`](./.claude/coding_rules.md))
 
 ---
 
