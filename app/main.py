@@ -7,7 +7,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 from app.api.v1.endpoints import auth, search, webhook
-from app.config import settings
 from app.infrastructure.external.telegram_client import TelegramRepository
 
 
