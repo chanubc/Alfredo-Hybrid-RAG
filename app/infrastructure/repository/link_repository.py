@@ -64,7 +64,7 @@ class LinkRepository(ILinkRepository):
         """읽지 않은 링크 목록 반환 (최신순)."""
         result = await self._db.execute(
             select(Link)
-            .where(Link.user_id == user_id, Link.is_read == False)  # noqa: E712
+            .where(Link.user_id == user_id, Link.is_read.is_(False))
             .order_by(Link.created_at.desc())
             .limit(limit)
         )
