@@ -40,7 +40,12 @@ class TelegramWebhookHandler:
             return
 
         text: str = message.get("text", "")
-        telegram_id: int = message["from"]["id"]
+        # channel_post는 "from" 필드 부재 가능 → chat.id로 폴백
+        from_user = message.get("from") or {}
+        telegram_id = from_user.get("id") or message.get("chat", {}).get("id")
+        if telegram_id is None:
+            logger.warning("Cannot determine telegram_id from message: %s", message)
+            return
         logger.info("Received message from %s: %s", telegram_id, text)
 
         # URL 검출 → LinkRepository 저장 (별도 처리)
