@@ -109,6 +109,13 @@ def get_link_service(
    chore/#8-update-deps
    ```
 3. **커밋** — `#이슈번호 [prefix] : 메시지`
+   - **기능별로 커밋**: 한 번에 여러 파일을 수정해도, 논리적 기능 단위로 나눠서 커밋한다.
+   - 예시 (같은 이슈 #40에서):
+     ```
+     커밋 1: #40 [refactor] : Implement Port/Adapter pattern for LLM
+     커밋 2: #40 [refactor] : Complete Port/Adapter pattern with SRP-compliant webhook service split
+     ```
+   - 각 커밋은 **독립적으로 동작 가능**해야 함 (히스토리 추적 용이)
 4. **PR 생성** — `feat/#N-xxx` → `main`, 본문에 `Closes #이슈번호` 포함, URL 노출 금지
    - PR 제목 형식: `[PREFIX/#이슈번호] 작업 제목`
    - 예시: `[FEAT/#12] Notion OAuth 콜백 엔드포인트 추가`, `[FIX/#7] 중복 URL 처리 버그 수정`
