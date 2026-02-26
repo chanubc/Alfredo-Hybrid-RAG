@@ -3,40 +3,40 @@ import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domain.repositories.i_chunk_repository import IChunkRepository
+from app.domain.repositories.i_link_repository import ILinkRepository
+from app.domain.repositories.i_notion_repository import INotionRepository
 from app.domain.repositories.i_openai_repository import IOpenAIRepository
 from app.domain.repositories.i_scraper_repository import IScraperRepository
 from app.domain.repositories.i_telegram_repository import ITelegramRepository
-from app.domain.repositories.i_chunk_repository import IChunkRepository
-from app.domain.repositories.i_link_repository import ILinkRepository
 from app.domain.repositories.i_user_repository import IUserRepository
-from app.domain.text import split_chunks
-from app.services.notion_service import NotionService
+from app.utils.text import split_chunks
 
 logger = logging.getLogger(__name__)
 
 
-class LinkService:
+class SaveLinkUseCase:
     def __init__(
         self,
         db: AsyncSession,
-        openai: IOpenAIRepository,
-        scraper: IScraperRepository,
-        notion_svc: NotionService,
-        telegram: ITelegramRepository,
         user_repo: IUserRepository,
         link_repo: ILinkRepository,
         chunk_repo: IChunkRepository,
+        openai: IOpenAIRepository,
+        scraper: IScraperRepository,
+        telegram: ITelegramRepository,
+        notion: INotionRepository,
     ) -> None:
         self._db = db
-        self._openai = openai
-        self._scraper = scraper
-        self._notion_svc = notion_svc
-        self._telegram = telegram
         self._user_repo = user_repo
         self._link_repo = link_repo
         self._chunk_repo = chunk_repo
+        self._openai = openai
+        self._scraper = scraper
+        self._telegram = telegram
+        self._notion = notion
 
-    async def process_link(self, telegram_id: int, url: str, memo: str | None = None) -> None:
+    async def execute(self, telegram_id: int, url: str, memo: str | None = None) -> None:
         """링크 처리 파이프라인 (BackgroundTask로 비동기 실행)."""
         try:
             # 1. Scrape
@@ -73,11 +73,11 @@ class LinkService:
                 embeddings = await self._openai.embed(raw_chunks)
                 await self._chunk_repo.save_chunks(link.id, list(zip(raw_chunks, embeddings)))
 
-            # 5. 단일 커밋 (ensure_exists + save_link + save_chunks를 하나의 트랜잭션으로 확정)
+            # 5. 단일 커밋
             await self._db.commit()
 
-            # 6. Notion 저장 (optional, DB 커밋 이후 외부 API 호출)
-            notion_url = await self._notion_svc.save(
+            # 6. Notion 저장 (optional, non-fatal)
+            notion_url = await self._save_to_notion(
                 telegram_id, title, summary, category, keywords, url, memo
             )
 
@@ -92,6 +92,37 @@ class LinkService:
             await self._telegram.send_message(
                 telegram_id, f"❌ 처리 실패: {str(exc)[:200]}"
             )
+
+    async def _save_to_notion(
+        self,
+        telegram_id: int,
+        title: str,
+        summary: str,
+        category: str,
+        keywords: list[str],
+        url: str | None,
+        memo: str | None,
+    ) -> str:
+        """Notion 저장. 성공 시 DB URL 반환, 실패 시 빈 문자열."""
+        token = await self._user_repo.get_decrypted_token(telegram_id)
+        user = await self._user_repo.get_by_telegram_id(telegram_id)
+        if not token or not user or not user.notion_database_id:
+            return ""
+        try:
+            await self._notion.create_database_entry(
+                access_token=token,
+                database_id=user.notion_database_id,
+                title=title,
+                category=category,
+                keywords=keywords,
+                summary=summary,
+                url=url,
+                memo=memo,
+            )
+            db_id = user.notion_database_id.replace("-", "")
+            return f"https://www.notion.so/{db_id}"
+        except Exception:
+            return ""
 
 
 def _build_done_message(
