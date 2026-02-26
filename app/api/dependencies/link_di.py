@@ -6,6 +6,9 @@ from app.api.dependencies.auth_di import (
     get_telegram_client,
     get_user_repository,
 )
+from app.application.usecases.save_link_usecase import SaveLinkUseCase
+from app.application.usecases.save_memo_usecase import SaveMemoUseCase
+from app.domain.repositories.i_notion_repository import INotionRepository
 from app.domain.repositories.i_openai_repository import IOpenAIRepository
 from app.domain.repositories.i_scraper_repository import IScraperRepository
 from app.domain.repositories.i_telegram_repository import ITelegramRepository
@@ -15,10 +18,6 @@ from app.infrastructure.llm.openai_client import OpenAIRepository
 from app.infrastructure.repository.chunk_repository import ChunkRepository
 from app.infrastructure.repository.link_repository import LinkRepository
 from app.infrastructure.repository.user_repository import UserRepository
-from app.services.link_service import LinkService
-from app.services.memo_service import MemoService
-from app.services.notion_service import NotionService
-from app.services.search_service import SearchService
 
 
 def get_openai_client() -> IOpenAIRepository:
@@ -37,40 +36,26 @@ def get_chunk_repository(db: AsyncSession = Depends(get_db)) -> ChunkRepository:
     return ChunkRepository(db)
 
 
-def get_notion_service(
-    user_repo: UserRepository = Depends(get_user_repository),
-    notion: NotionClient = Depends(get_notion_client),
-) -> NotionService:
-    return NotionService(user_repo, notion)
-
-
-def get_search_service(
-    openai: IOpenAIRepository = Depends(get_openai_client),
-    chunk_repo: ChunkRepository = Depends(get_chunk_repository),
-) -> SearchService:
-    return SearchService(openai, chunk_repo)
-
-
-def get_memo_service(
+def get_save_link_usecase(
     db: AsyncSession = Depends(get_db),
-    openai: IOpenAIRepository = Depends(get_openai_client),
-    notion_svc: NotionService = Depends(get_notion_service),
-    telegram: ITelegramRepository = Depends(get_telegram_client),
     user_repo: UserRepository = Depends(get_user_repository),
     link_repo: LinkRepository = Depends(get_link_repository),
     chunk_repo: ChunkRepository = Depends(get_chunk_repository),
-) -> MemoService:
-    return MemoService(db, openai, notion_svc, telegram, user_repo, link_repo, chunk_repo)
-
-
-def get_link_service(
-    db: AsyncSession = Depends(get_db),
     openai: IOpenAIRepository = Depends(get_openai_client),
     scraper: IScraperRepository = Depends(get_scraper_client),
-    notion_svc: NotionService = Depends(get_notion_service),
     telegram: ITelegramRepository = Depends(get_telegram_client),
+    notion: INotionRepository = Depends(get_notion_client),
+) -> SaveLinkUseCase:
+    return SaveLinkUseCase(db, user_repo, link_repo, chunk_repo, openai, scraper, telegram, notion)
+
+
+def get_save_memo_usecase(
+    db: AsyncSession = Depends(get_db),
     user_repo: UserRepository = Depends(get_user_repository),
     link_repo: LinkRepository = Depends(get_link_repository),
     chunk_repo: ChunkRepository = Depends(get_chunk_repository),
-) -> LinkService:
-    return LinkService(db, openai, scraper, notion_svc, telegram, user_repo, link_repo, chunk_repo)
+    openai: IOpenAIRepository = Depends(get_openai_client),
+    telegram: ITelegramRepository = Depends(get_telegram_client),
+    notion: INotionRepository = Depends(get_notion_client),
+) -> SaveMemoUseCase:
+    return SaveMemoUseCase(db, user_repo, link_repo, chunk_repo, openai, telegram, notion)
