@@ -24,3 +24,6 @@ class ILinkRepository(ABC):
         keywords: str,
         memo: str,
     ) -> Link: ...
+
+    @abstractmethod
+    async def get_unread_links(self, user_id: int, limit: int = 10) -> list[Link]: ...

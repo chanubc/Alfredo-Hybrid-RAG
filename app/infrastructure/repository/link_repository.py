@@ -1,3 +1,4 @@
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -59,3 +60,12 @@ class LinkRepository(ILinkRepository):
         await self._db.refresh(link)
         return link
 
+    async def get_unread_links(self, user_id: int, limit: int = 10) -> list[Link]:
+        """읽지 않은 링크 목록 반환 (최신순)."""
+        result = await self._db.execute(
+            select(Link)
+            .where(Link.user_id == user_id, Link.is_read == False)  # noqa: E712
+            .order_by(Link.created_at.desc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
