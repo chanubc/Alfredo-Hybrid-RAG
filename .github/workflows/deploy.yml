@@ -12,22 +12,28 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # fork PR은 secrets가 없으므로 skip
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         env:
           DEPLOY_BRANCH: ${{ github.event_name == 'pull_request' && github.head_ref || 'main' }}
+          IS_PR: ${{ github.event_name == 'pull_request' }}
         with:
           host: ${{ secrets.GCP_HOST }}
           username: ${{ secrets.GCP_USER }}
           key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
           port: 22
-          envs: DEPLOY_BRANCH
+          envs: DEPLOY_BRANCH,IS_PR
           script: |
             cd ~/linkdbot-rag
             git fetch origin
-            git checkout "$DEPLOY_BRANCH"
-            git pull origin "$DEPLOY_BRANCH"
-            docker system prune -f
-            docker compose up -d --build
+            git checkout -B "$DEPLOY_BRANCH" "origin/$DEPLOY_BRANCH"
+            if [ "$IS_PR" = "true" ]; then
+              docker compose build
+            else
+              docker system prune -f
+              docker compose up -d --build
+            fi
