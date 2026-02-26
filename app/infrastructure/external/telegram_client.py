@@ -82,7 +82,11 @@ class TelegramRepository(ITelegramRepository):
                 "<b>4️⃣ 검색</b>\n"
                 "텍스트를 입력하거나 /search를 사용하면 AI로 검색해요\n"
                 "<code>/search [검색어]</code> 또는 바로 입력\n"
-                "예시: <code>/search 머신러닝 논문</code> 또는 <code>머신러닝 논문</code>"
+                "예시: <code>/search 머신러닝 논문</code> 또는 <code>머신러닝 논문</code>\n\n"
+                "<b>5️⃣ AI 질문</b>\n"
+                "저장된 지식 기반으로 AI가 답변해드려요\n"
+                "<code>/ask [질문]</code>\n"
+                "예시: <code>/ask 머신러닝이란?</code>"
             ),
         )
 
