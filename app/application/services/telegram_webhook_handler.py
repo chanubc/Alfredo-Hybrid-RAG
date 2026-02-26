@@ -59,7 +59,7 @@ class TelegramWebhookHandler:
 
         # 메시지(슬래쉬 명령어 + 일반 텍스트) → MessageRouter로 위임 (백그라운드)
         # (OpenAI, Notion I/O 대기로 인한 웹훅 타임아웃 방지)
-        background_tasks.add_task(self._message_router.route, telegram_id, text)
+        background_tasks.add_task(self._message_router.route, telegram_id, text, background_tasks)
 
     async def _handle_callback(self, callback: dict) -> None:
         """콜백 쿼리 처리 (도움말 버튼 등)."""

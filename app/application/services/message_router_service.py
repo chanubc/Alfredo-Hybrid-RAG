@@ -1,5 +1,7 @@
 import logging
 
+from fastapi import BackgroundTasks
+
 from app.application.ports.agent_port import AgentPort
 from app.application.ports.intent_classifier_port import IntentClassifierPort
 from app.application.ports.telegram_port import TelegramPort
@@ -40,8 +42,13 @@ class MessageRouterService:
         self._user_repo = user_repo
         self._auth_service = auth_service
 
-    async def route(self, telegram_id: int, text: str) -> None:
-        """메시지를 적절한 핸들러로 라우팅."""
+    async def route(
+        self, telegram_id: int, text: str, background_tasks: BackgroundTasks | None = None
+    ) -> None:
+        """메시지를 적절한 핸들러로 라우팅.
+
+        Long-running 작업은 background_tasks를 통해 비동기 실행됨.
+        """
         if not text.strip():
             return
 
@@ -54,7 +61,10 @@ class MessageRouterService:
             memo_text = text[5:].strip()
             if memo_text:
                 await self._telegram.send_message(telegram_id, "📝 메모를 저장하는 중입니다...")
-                await self._save_memo_uc.execute(telegram_id, memo_text)
+                if background_tasks:
+                    background_tasks.add_task(self._save_memo_uc.execute, telegram_id, memo_text)
+                else:
+                    await self._save_memo_uc.execute(telegram_id, memo_text)
             else:
                 await self._telegram.send_message(
                     telegram_id,
@@ -63,7 +73,10 @@ class MessageRouterService:
         elif text.startswith("/ask"):
             query = text[4:].strip()
             if query:
-                await self._agent.run(telegram_id, query)  # Port 사용
+                if background_tasks:
+                    background_tasks.add_task(self._agent.run, telegram_id, query)
+                else:
+                    await self._agent.run(telegram_id, query)
             else:
                 await self._telegram.send_message(
                     telegram_id,
@@ -89,9 +102,15 @@ class MessageRouterService:
                 await self._telegram.send_search_results(telegram_id, effective_query, results)
             elif routed.intent == Intent.MEMO:
                 await self._telegram.send_message(telegram_id, "📝 메모를 저장하는 중입니다...")
-                await self._save_memo_uc.execute(telegram_id, effective_query)
+                if background_tasks:
+                    background_tasks.add_task(self._save_memo_uc.execute, telegram_id, effective_query)
+                else:
+                    await self._save_memo_uc.execute(telegram_id, effective_query)
             elif routed.intent == Intent.ASK:
-                await self._agent.run(telegram_id, effective_query)  # Port 사용
+                if background_tasks:
+                    background_tasks.add_task(self._agent.run, telegram_id, effective_query)
+                else:
+                    await self._agent.run(telegram_id, effective_query)
             elif routed.intent == Intent.START:
                 await self._handle_start(telegram_id)
             elif routed.intent == Intent.HELP:
