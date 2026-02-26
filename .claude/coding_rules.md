@@ -120,8 +120,10 @@ def get_message_router(
 [chore] : update .gitignore for tmpclaude files
 ```
 
-이슈가 있을 경우 반드시 `#이슈번호`를 앞에 붙인다.
-이슈가 없을 경우 prefix만 사용한다.
+**규칙:**
+- 이슈가 있을 경우 반드시 `#이슈번호`를 앞에 붙인다.
+- 이슈가 없을 경우 prefix만 사용한다.
+- **❌ Co-Authored-By 라인 추가 금지** — 단독 커밋으로만 진행
 
 ---
 
