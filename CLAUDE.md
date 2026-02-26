@@ -15,6 +15,8 @@ Guidance for Claude Code when working with LinkdBot-RAG.
 
 **Current Phase:** Phase 2 (Complete) → Phase 3 (Proactive Agent, In Progress)
 
+**Architecture Pattern:** Pragmatic Clean Architecture + **Port/Adapter (Hexagonal)** for external systems
+
 ---
 
 ## 🏗️ Architecture (Pragmatic Clean Architecture)

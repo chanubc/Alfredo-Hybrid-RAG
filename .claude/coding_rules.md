@@ -2,28 +2,55 @@
 
 ## DI Strategy
 
-Use FastAPI Depends.
+Use FastAPI Depends only.
 
-Service는 **Interface 타입**으로 파라미터를 선언하고, DI 팩토리에서 concrete class를 주입한다.
+**2가지 DI 패턴:**
+
+### 1️⃣ Repository Pattern (DB I/O)
+Service는 **Repository Interface 타입**으로 파라미터를 선언하고, DI 팩토리에서 concrete Repository를 주입한다.
 
 ```python
-# ✅ Service — 인터페이스에만 의존
-class LinkService:
+# ✅ UseCase — Repository Interface에만 의존
+class SaveLinkUseCase:
     def __init__(
         self,
-        link_repo: ILinkRepository,
+        link_repo: ILinkRepository,  # Interface 타입
         chunk_repo: IChunkRepository,
     ) -> None: ...
 
-# ✅ DI factory — concrete class 인스턴스화
-def get_chunk_repository(db: AsyncSession = Depends(get_db)) -> ChunkRepository:
-    return ChunkRepository(db)
+# ✅ DI factory — concrete Repository 인스턴스화
+def get_link_repository(db: AsyncSession = Depends(get_db)) -> LinkRepository:
+    return LinkRepository(db)
 
-def get_link_service(
+def get_save_link_usecase(
     link_repo: LinkRepository = Depends(get_link_repository),
     chunk_repo: ChunkRepository = Depends(get_chunk_repository),
-) -> LinkService:
-    return LinkService(link_repo, chunk_repo)
+) -> SaveLinkUseCase:
+    return SaveLinkUseCase(link_repo, chunk_repo)
+```
+
+### 2️⃣ Port/Adapter Pattern (External Systems)
+Service는 **Port Interface 타입**으로 파라미터를 선언하고, DI 팩토리에서 Adapter를 주입한다.
+Framework 전환 가능 (OpenAI ↔ Anthropic, KnowledgeAgent ↔ LangGraph).
+
+```python
+# ✅ Service — Port Interface에만 의존
+class MessageRouterService:
+    def __init__(
+        self,
+        intent_classifier: IntentClassifierPort,  # Port 타입
+        agent: AgentPort,
+    ) -> None: ...
+
+# ✅ DI factory — Port → Adapter 매핑
+def get_intent_classifier() -> IntentClassifierPort:
+    return OpenAIIntentClassifier()  # Adapter 반환
+
+def get_message_router(
+    intent_classifier: IntentClassifierPort = Depends(get_intent_classifier),
+    agent: AgentPort = Depends(get_agent),
+) -> MessageRouterService:
+    return MessageRouterService(intent_classifier, agent)
 ```
 
 ---
@@ -35,6 +62,8 @@ def get_link_service(
 - No SQLAlchemy imports.
 - No HTTP calls.
 - **Repository interfaces (ABC)는 domain 레이어에 위치** (`app/domain/repositories/`).
+- **Entity (Enum, Model)는 domain 레이어에 위치** (`app/domain/entities/`)
+  - 예: `Intent` Enum (SEARCH, MEMO, ASK, START, HELP, UNKNOWN)
 
 ---
 
@@ -50,9 +79,13 @@ def get_link_service(
 
 ## Service Rules
 
-- Orchestration only.
+- Orchestration & Protocol handling only (비즈니스 흐름 조율, 프로토콜 처리).
 - No raw SQL.
 - Call domain for calculations.
+- **SRP 준수**: 1 파일 = 1 책임
+  - 예: WebhookService 분리
+    - `TelegramWebhookHandler`: 웹훅 프로토콜만
+    - `MessageRouterService`: 메시지 라우팅 & Intent 분류
 
 ---
 
