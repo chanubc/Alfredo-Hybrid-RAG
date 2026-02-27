@@ -54,7 +54,14 @@ class TelegramRepository(TelegramPort):
                 "inline_keyboard": [[{"text": "📓 Notion에서 보기", "url": notion_url}]]
             }
         async with httpx.AsyncClient() as client:
-            await client.post(f"{self._base}/sendMessage", json=payload)
+            resp = await client.post(f"{self._base}/sendMessage", json=payload)
+            if not resp.is_success:
+                logger.error(
+                    "send_link_saved_message failed %s: %s | text=%r",
+                    resp.status_code,
+                    resp.text,
+                    text[:200],
+                )
 
     async def answer_callback_query(self, callback_query_id: str) -> None:
         """콜백 버튼 로딩 스피너 해제."""
