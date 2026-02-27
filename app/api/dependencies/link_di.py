@@ -12,7 +12,9 @@ from app.application.ports.notion_port import NotionPort
 from app.application.ports.openai_llm_port import OpenAILLMPort
 from app.application.ports.scraper_port import ScraperPort
 from app.application.ports.telegram_port import TelegramPort
+from app.core.config import settings
 from app.infrastructure.database import get_db
+from app.infrastructure.external.jina_reader_adapter import JinaReaderAdapter
 from app.infrastructure.external.scraper_client import ScraperRepository
 from app.infrastructure.llm.openai_client import OpenAIRepository
 from app.infrastructure.repository.chunk_repository import ChunkRepository
@@ -25,6 +27,9 @@ def get_openai_client() -> OpenAILLMPort:
 
 
 def get_scraper_client() -> ScraperPort:
+    """JINA_API_KEY 설정 시 JinaReaderAdapter, 미설정 시 OG ScraperRepository 사용."""
+    if settings.JINA_API_KEY:
+        return JinaReaderAdapter(api_key=settings.JINA_API_KEY)
     return ScraperRepository()
 
 
