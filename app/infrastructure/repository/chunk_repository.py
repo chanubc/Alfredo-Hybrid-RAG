@@ -15,23 +15,28 @@ class ChunkRepository(IChunkRepository):
         chunks: list[tuple[str, list[float]]],
     ) -> None:
         """청크 + 임베딩 벡터 저장. tsvector도 함께 생성."""
-        for content, embedding in chunks:
-            # tsvector는 raw SQL로 생성 (ORM이 TSVECTOR 함수 호출 미지원)
-            sql = text("""
-                INSERT INTO chunks (link_id, content, embedding, tsv)
-                VALUES (
-                    :link_id,
-                    :content,
-                    CAST(:emb AS vector),
-                    to_tsvector('simple', :content)
-                )
-            """)
-            emb_str = "[" + ",".join(str(v) for v in embedding) + "]"
-            await self._db.execute(sql, {
+        if not chunks:
+            return
+        # tsvector는 raw SQL로 생성 (ORM이 TSVECTOR 함수 호출 미지원)
+        # SQL 객체 1회 생성 + executemany로 배치 처리 (DB round-trip 최소화)
+        sql = text("""
+            INSERT INTO chunks (link_id, content, embedding, tsv)
+            VALUES (
+                :link_id,
+                :content,
+                CAST(:emb AS vector),
+                to_tsvector('simple', :content)
+            )
+        """)
+        params = [
+            {
                 "link_id": link_id,
                 "content": content,
-                "emb": emb_str,
-            })
+                "emb": "[" + ",".join(str(v) for v in embedding) + "]",
+            }
+            for content, embedding in chunks
+        ]
+        await self._db.execute(sql, params)
 
     async def search_similar(
         self,
