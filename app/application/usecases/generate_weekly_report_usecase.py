@@ -5,7 +5,7 @@ Flow:
 2. Interest Centroid 계산 (최근 7일 임베딩, 없으면 전체 폴백)
 3. 최근 14일 추천 이력 제외하고 재활성화 후보 조회
 4. Reactivation Score 기반 최적 링크 1개 선정
-5. GPT-4o-mini로 브리핑 생성
+5. LLM_ANALYSIS(gpt-4.1-mini)로 브리핑 생성
 6. Telegram 푸시 (읽음 처리 버튼 포함)
 7. 추천 이력 기록 + DB 커밋
 """
