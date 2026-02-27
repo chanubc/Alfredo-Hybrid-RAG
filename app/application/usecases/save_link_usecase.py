@@ -1,3 +1,4 @@
+import html
 import json
 import logging
 
@@ -150,7 +151,7 @@ def _build_done_message(
 ) -> str:
     return (
         f"✅ 저장 완료!\n\n"
-        f"📌 <b>{title}</b>\n"
-        f"📂 {category}  |  🔑 {', '.join(keywords)}\n\n"
-        f"📝 {summary}"
+        f"📌 <b>{html.escape(title)}</b>\n"
+        f"📂 {html.escape(category)}  |  🔑 {html.escape(', '.join(keywords))}\n\n"
+        f"📝 {html.escape(summary)}"
     )
