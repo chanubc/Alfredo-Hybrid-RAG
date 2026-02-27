@@ -41,6 +41,21 @@ class MessageRouterService:
         self._user_repo = user_repo
         self._auth_service = auth_service
 
+    async def _run_in_background(
+        self, background_tasks: BackgroundTasks | None, coro, *args
+    ) -> None:
+        """Execute coroutine in background or directly based on availability.
+
+        Args:
+            background_tasks: FastAPI BackgroundTasks instance (optional)
+            coro: Coroutine function to execute
+            *args: Arguments to pass to coroutine
+        """
+        if background_tasks:
+            background_tasks.add_task(coro, *args)
+        else:
+            await coro(*args)
+
     async def route(
         self, telegram_id: int, text: str, background_tasks: BackgroundTasks | None = None
     ) -> None:
@@ -70,24 +85,36 @@ class MessageRouterService:
             return
 
         # 일반 텍스트 → Intent 분류 (Port 사용)
-        routed = await self._intent_classifier.classify(text)
-        effective_query = routed.query or text
-
-        if routed.intent == Intent.SEARCH:
-            await self._process_search(telegram_id, effective_query)
-        elif routed.intent == Intent.MEMO:
-            await self._process_memo(telegram_id, effective_query, background_tasks)
-        elif routed.intent == Intent.ASK:
-            await self._process_ask(telegram_id, effective_query, background_tasks)
-        elif routed.intent == Intent.START:
-            await self._handle_start(telegram_id)
-        elif routed.intent == Intent.HELP:
-            await self._handle_help(telegram_id)
-        else:  # UNKNOWN
+        try:
+            routed = await self._intent_classifier.classify(text)
+            effective_query = routed.query or text
+        except Exception as e:
+            logger.exception("Error classifying intent: %s", e)
             await self._telegram.send_message(
                 telegram_id,
                 "봇 사용법이 궁금하시면 /help 를 입력해보세요.",
             )
+            return
+
+        try:
+            if routed.intent == Intent.SEARCH:
+                await self._process_search(telegram_id, effective_query)
+            elif routed.intent == Intent.MEMO:
+                await self._process_memo(telegram_id, effective_query, background_tasks)
+            elif routed.intent == Intent.ASK:
+                await self._process_ask(telegram_id, effective_query, background_tasks)
+            elif routed.intent == Intent.START:
+                await self._handle_start(telegram_id)
+            elif routed.intent == Intent.HELP:
+                await self._handle_help(telegram_id)
+            else:  # UNKNOWN
+                await self._telegram.send_message(
+                    telegram_id,
+                    "봇 사용법이 궁금하시면 /help 를 입력해보세요.",
+                )
+        except Exception as e:
+            logger.exception("Error handling intent: %s", e)
+            await self._telegram.send_message(telegram_id, "처리 중 오류가 발생했습니다.")
 
     async def _process_memo(
         self, telegram_id: int, payload: str, background_tasks: BackgroundTasks | None
@@ -100,11 +127,14 @@ class MessageRouterService:
             )
             return
 
-        await self._telegram.send_message(telegram_id, "📝 메모를 저장하는 중입니다...")
-        if background_tasks:
-            background_tasks.add_task(self._save_memo_uc.execute, telegram_id, payload)
-        else:
-            await self._save_memo_uc.execute(telegram_id, payload)
+        try:
+            await self._telegram.send_message(telegram_id, "📝 메모를 저장하는 중입니다...")
+            await self._run_in_background(
+                background_tasks, self._save_memo_uc.execute, telegram_id, payload
+            )
+        except Exception as e:
+            logger.exception("Error saving memo: %s", e)
+            await self._telegram.send_message(telegram_id, "메모 저장 중 오류가 발생했습니다.")
 
     async def _process_ask(
         self, telegram_id: int, payload: str, background_tasks: BackgroundTasks | None
@@ -117,10 +147,11 @@ class MessageRouterService:
             )
             return
 
-        if background_tasks:
-            background_tasks.add_task(self._agent.run, telegram_id, payload)
-        else:
-            await self._agent.run(telegram_id, payload)
+        try:
+            await self._run_in_background(background_tasks, self._agent.run, telegram_id, payload)
+        except Exception as e:
+            logger.exception("Error running agent: %s", e)
+            await self._telegram.send_message(telegram_id, "질문 처리 중 오류가 발생했습니다.")
 
     async def _process_search(self, telegram_id: int, payload: str) -> None:
         """검색 처리."""
@@ -131,19 +162,31 @@ class MessageRouterService:
             )
             return
 
-        results = await self._search_uc.execute(telegram_id, payload)
-        await self._telegram.send_search_results(telegram_id, payload, results)
+        try:
+            results = await self._search_uc.execute(telegram_id, payload)
+            await self._telegram.send_search_results(telegram_id, payload, results)
+        except Exception as e:
+            logger.exception("Error searching: %s", e)
+            await self._telegram.send_message(telegram_id, "검색 중 오류가 발생했습니다.")
 
     async def _handle_start(self, telegram_id: int) -> None:
         """시작 명령어 처리."""
-        user = await self._user_repo.get_by_telegram_id(telegram_id)
-        if user and user.notion_access_token:
-            first_name: str | None = user.first_name
-            await self._telegram.send_welcome_connected(telegram_id, first_name)
-        else:
-            login_url = self._auth_service.create_login_url(telegram_id)
-            await self._telegram.send_notion_connect_button(telegram_id, login_url)
+        try:
+            user = await self._user_repo.get_by_telegram_id(telegram_id)
+            if user and user.notion_access_token:
+                first_name: str | None = user.first_name
+                await self._telegram.send_welcome_connected(telegram_id, first_name)
+            else:
+                login_url = self._auth_service.create_login_url(telegram_id)
+                await self._telegram.send_notion_connect_button(telegram_id, login_url)
+        except Exception as e:
+            logger.exception("Error handling start: %s", e)
+            await self._telegram.send_message(telegram_id, "/start 처리 중 오류가 발생했습니다.")
 
     async def _handle_help(self, telegram_id: int) -> None:
         """도움말 명령어 처리."""
-        await self._telegram.send_help_message(telegram_id)
+        try:
+            await self._telegram.send_help_message(telegram_id)
+        except Exception as e:
+            logger.exception("Error handling help: %s", e)
+            await self._telegram.send_message(telegram_id, "/help 처리 중 오류가 발생했습니다.")
