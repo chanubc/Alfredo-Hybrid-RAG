@@ -21,7 +21,6 @@ from app.domain.repositories.i_link_repository import ILinkRepository
 from app.domain.repositories.i_recommendation_repository import IRecommendationRepository
 from app.domain.repositories.i_user_repository import IUserRepository
 from app.domain.scoring import compute_interest_centroid, select_reactivation_link
-from app.core.prompts.weekly_briefing import build_briefing_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +92,7 @@ class GenerateWeeklyReportUseCase:
 
         # 5. LLM 브리핑 생성
         briefing = await self._openai.generate_briefing(
-            build_briefing_prompt(best, tvd, delta, current_cats)
+            _build_briefing_prompt(best, tvd, delta, current_cats)
         )
 
         # 6. Telegram 전송 (읽음 처리 버튼 포함)
@@ -107,6 +106,52 @@ class GenerateWeeklyReportUseCase:
         # 7. 추천 이력 기록 + 단일 커밋
         await self._rec_repo.record(link_id=best["link_id"], user_id=user_id)
         await self._db.commit()
+
+
+def _build_briefing_prompt(
+    best: dict,
+    tvd: float,
+    delta: dict[str, float],
+    current_cats: list[str],
+) -> str:
+    if tvd > 0.1:
+        top_gains = sorted(
+            [(c, d) for c, d in delta.items() if d > 0],
+            key=lambda t: t[1],
+            reverse=True,
+        )[:2]
+        top_losses = sorted(
+            [(c, d) for c, d in delta.items() if d < 0],
+            key=lambda t: t[1],
+        )[:2]
+        drift_lines = []
+        for c, d in top_gains:
+            drift_lines.append(f"  ▲ {c} (+{d:.0%})")
+        for c, d in top_losses:
+            drift_lines.append(f"  ▼ {c} ({d:.0%})")
+        drift_summary = "Interest drift:\n" + "\n".join(drift_lines)
+    else:
+        drift_summary = "Interest drift: stable (no significant change)"
+
+    categories_str = ", ".join(current_cats[:10]) if current_cats else "none"
+
+    return f"""\
+Generate a weekly knowledge report for the user.
+
+[This week's interest categories]: {categories_str}
+[{drift_summary}]
+
+[Link to revisit]
+Title: {best.get('title', 'No title')}
+Summary: {best.get('summary', '')}
+Category: {best.get('category', '')}
+
+Based on the above information:
+1. Summarize this week's interest trends in one sentence
+2. Explain why the recommended link is useful right now (2-3 sentences)
+3. Provide an encouraging closing remark
+
+Write in Korean, in a friendly and concise tone. Total 5-7 sentences."""
 
 
 def _build_report_message(briefing: str, best: dict) -> str:
