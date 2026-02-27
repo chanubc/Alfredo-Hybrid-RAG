@@ -41,3 +41,12 @@ JSON만 반환하세요."""
             input=texts,
         )
         return [item.embedding for item in response.data]
+
+    async def generate_briefing(self, prompt: str) -> str:
+        """GPT-4o-mini로 주간 브리핑 텍스트 생성."""
+        response = await self._client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+        )
+        return response.choices[0].message.content or ""

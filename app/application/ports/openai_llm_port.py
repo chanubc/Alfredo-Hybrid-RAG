@@ -13,3 +13,8 @@ class OpenAILLMPort(ABC):
     async def embed(self, texts: list[str]) -> list[list[float]]:
         """text-embedding-3-small으로 벡터 임베딩 생성."""
         pass
+
+    @abstractmethod
+    async def generate_briefing(self, prompt: str) -> str:
+        """GPT-4o-mini로 주간 브리핑 텍스트 생성."""
+        pass
