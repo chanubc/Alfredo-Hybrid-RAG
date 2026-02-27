@@ -119,7 +119,7 @@ class MessageRouterService:
             return
 
         # 일반 텍스트 → 즉시 1차 응답 후 Intent 분류 + 처리
-        await self._telegram.send_message(telegram_id, "🤖 답변을 생성하는 중입니다...")
+        await self._telegram.send_message(telegram_id, "🤔 분석 중입니다...")
         try:
             routed = await self._intent_classifier.classify(text)
             effective_query = routed.query or text
