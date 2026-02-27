@@ -137,6 +137,23 @@ class TelegramRepository(TelegramPort):
             )
             resp.raise_for_status()
 
+    async def send_weekly_report(
+        self,
+        chat_id: int,
+        text: str,
+        link_id: int | None = None,
+    ) -> None:
+        """주간 리포트 전송. link_id 있으면 [읽음 처리] 인라인 버튼 포함."""
+        payload: dict = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
+        if link_id is not None:
+            payload["reply_markup"] = {
+                "inline_keyboard": [[
+                    {"text": "✅ 읽음 처리", "callback_data": f"mark_read:{link_id}"},
+                ]]
+            }
+        async with httpx.AsyncClient() as client:
+            await client.post(f"{self._base}/sendMessage", json=payload)
+
     async def register_commands(self) -> bool:
         """봇 명령어 자동완성 등록 (setMyCommands).
 

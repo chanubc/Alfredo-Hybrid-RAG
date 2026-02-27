@@ -6,7 +6,7 @@ from app.api.dependencies.auth_di import (
     get_telegram_client,
     get_user_repository,
 )
-from app.api.dependencies.link_di import get_save_link_usecase, get_save_memo_usecase
+from app.api.dependencies.link_di import get_link_repository, get_save_link_usecase, get_save_memo_usecase
 from app.api.dependencies.rag_di import get_search_usecase
 from app.application.ports.agent_port import AgentPort
 from app.application.ports.intent_classifier_port import IntentClassifierPort
@@ -17,7 +17,9 @@ from app.application.usecases.save_link_usecase import SaveLinkUseCase
 from app.application.usecases.save_memo_usecase import SaveMemoUseCase
 from app.application.usecases.search_usecase import SearchUseCase
 from app.application.ports.telegram_port import TelegramPort
+from app.domain.repositories.i_link_repository import ILinkRepository
 from app.domain.repositories.i_user_repository import IUserRepository
+from app.infrastructure.repository.link_repository import LinkRepository
 from app.infrastructure.repository.user_repository import UserRepository
 
 
@@ -40,5 +42,6 @@ def get_webhook_handler(
     telegram: TelegramPort = Depends(get_telegram_client),
     save_link_uc: SaveLinkUseCase = Depends(get_save_link_usecase),
     user_repo: IUserRepository = Depends(get_user_repository),
+    link_repo: ILinkRepository = Depends(get_link_repository),
 ) -> TelegramWebhookHandler:
-    return TelegramWebhookHandler(message_router, telegram, save_link_uc, user_repo)
+    return TelegramWebhookHandler(message_router, telegram, save_link_uc, user_repo, link_repo)
