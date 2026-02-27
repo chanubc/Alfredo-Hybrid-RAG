@@ -9,6 +9,7 @@ Flow:
 6. Telegram 푸시 (읽음 처리 버튼 포함)
 7. 추천 이력 기록 + DB 커밋
 """
+import html
 import logging
 from datetime import datetime, timedelta, timezone
 
@@ -49,6 +50,7 @@ class GenerateWeeklyReportUseCase:
             try:
                 await self.execute(user.telegram_id)
             except Exception as exc:
+                await self._db.rollback()
                 logger.error(
                     "Weekly report failed for user %s: %s",
                     user.telegram_id,
@@ -155,12 +157,12 @@ Write in Korean, in a friendly and concise tone. Total 5-7 sentences."""
 
 
 def _build_report_message(briefing: str, best: dict) -> str:
-    title = best.get("title", "제목 없음")
+    title = html.escape(best.get("title", "제목 없음"))
     url = best.get("url", "")
-    url_line = f'\n🔗 <a href="{url}">{url}</a>' if url else ""
+    url_line = f'\n🔗 <a href="{html.escape(url)}">{html.escape(url)}</a>' if url else ""
     return (
         f"📊 <b>이번 주 지식 리포트</b>\n\n"
-        f"{briefing}\n\n"
+        f"{html.escape(briefing)}\n\n"
         f"━━━━━━━━━━━━━━━\n"
         f"📌 <b>다시 보기 추천</b>\n"
         f"<b>{title}</b>{url_line}"
