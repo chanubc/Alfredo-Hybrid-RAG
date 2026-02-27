@@ -62,9 +62,9 @@ class GenerateWeeklyReportUseCase:
         week_ago = now - timedelta(days=7)
         month_ago = now - timedelta(days=30)
 
-        # 1. Drift 계산
+        # 1. Drift 계산 (current: 최근 7일, past: 7일~30일 — 겹침 없이 분리)
         current_cats = await self._link_repo.get_categories_by_period(user_id, week_ago, now)
-        past_cats = await self._link_repo.get_categories_by_period(user_id, month_ago, now)
+        past_cats = await self._link_repo.get_categories_by_period(user_id, month_ago, week_ago)
         tvd, delta = calculate_drift(current_cats, past_cats)
 
         # 2. Interest Centroid (최근 7일 → 전체 폴백)

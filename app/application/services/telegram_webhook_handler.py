@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import BackgroundTasks
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.services.message_router_service import MessageRouterService
 from app.application.ports.telegram_port import TelegramPort
@@ -20,12 +21,14 @@ class TelegramWebhookHandler:
 
     def __init__(
         self,
+        db: AsyncSession,
         message_router: MessageRouterService,
         telegram: TelegramPort,
         save_link_uc: SaveLinkUseCase,
         user_repo: IUserRepository,
         link_repo: ILinkRepository,
     ):
+        self._db = db
         self._message_router = message_router
         self._telegram = telegram
         self._save_link_uc = save_link_uc
@@ -88,6 +91,7 @@ class TelegramWebhookHandler:
             try:
                 link_id = int(data.split(":", 1)[1])
                 await self._link_repo.mark_as_read(link_id)
+                await self._db.commit()
                 await self._telegram.send_message(chat_id, "✅ 읽음 처리되었습니다.")
             except Exception as exc:
                 logger.warning("mark_read callback failed: %s", exc)

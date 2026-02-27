@@ -1,4 +1,5 @@
 from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies.adapter_di import get_agent, get_intent_classifier
 from app.api.dependencies.auth_di import (
@@ -19,6 +20,7 @@ from app.application.usecases.search_usecase import SearchUseCase
 from app.application.ports.telegram_port import TelegramPort
 from app.domain.repositories.i_link_repository import ILinkRepository
 from app.domain.repositories.i_user_repository import IUserRepository
+from app.infrastructure.database import get_db
 from app.infrastructure.repository.link_repository import LinkRepository
 from app.infrastructure.repository.user_repository import UserRepository
 
@@ -38,10 +40,11 @@ def get_message_router(
 
 
 def get_webhook_handler(
+    db: AsyncSession = Depends(get_db),
     message_router: MessageRouterService = Depends(get_message_router),
     telegram: TelegramPort = Depends(get_telegram_client),
     save_link_uc: SaveLinkUseCase = Depends(get_save_link_usecase),
     user_repo: IUserRepository = Depends(get_user_repository),
     link_repo: ILinkRepository = Depends(get_link_repository),
 ) -> TelegramWebhookHandler:
-    return TelegramWebhookHandler(message_router, telegram, save_link_uc, user_repo, link_repo)
+    return TelegramWebhookHandler(db, message_router, telegram, save_link_uc, user_repo, link_repo)
