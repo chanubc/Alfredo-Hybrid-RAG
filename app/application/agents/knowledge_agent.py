@@ -4,7 +4,7 @@ import logging
 from app.domain.repositories.i_link_repository import ILinkRepository
 from app.application.models.llm import LLMMessage, LLMTool
 from app.application.ports.telegram_port import TelegramPort
-from app.application.ports.llm_gateway_port import LLMGatewayPort
+from app.application.ports.chat_completion_port import ChatCompletionPort
 from app.infrastructure.rag.reranker import SimpleReranker
 from app.infrastructure.rag.retriever import HybridRetriever
 
@@ -51,7 +51,7 @@ class KnowledgeAgent:
         reranker: SimpleReranker,
         link_repo: ILinkRepository,
         telegram: TelegramPort,
-        llm: LLMGatewayPort,
+        llm: ChatCompletionPort,
     ) -> None:
         self._retriever = retriever
         self._reranker = reranker

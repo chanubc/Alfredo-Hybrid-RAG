@@ -3,10 +3,10 @@ import json
 from openai import AsyncOpenAI
 
 from app.core.config import settings
-from app.application.ports.openai_llm_port import OpenAILLMPort
+from app.application.ports.ai_task_port import AITaskPort
 
 
-class OpenAIRepository(OpenAILLMPort):
+class OpenAIRepository(AITaskPort):
     def __init__(self) -> None:
         self._client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
