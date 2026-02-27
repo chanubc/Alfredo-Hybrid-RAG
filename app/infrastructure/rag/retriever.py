@@ -10,6 +10,6 @@ class HybridRetriever:
         self._chunk_repo = chunk_repo
 
     async def retrieve(self, user_id: int, query: str, top_k: int = 10) -> list[dict]:
-        """쿼리 임베딩 → pgvector 유사도 검색."""
+        """쿼리 임베딩 → Hybrid (Dense + Sparse) 검색."""
         [embedding] = await self._openai.embed([query])
-        return await self._chunk_repo.search_similar(user_id, embedding, top_k)
+        return await self._chunk_repo.search_similar(user_id, embedding, top_k, query_text=query)
