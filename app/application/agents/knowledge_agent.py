@@ -8,7 +8,7 @@ from app.application.ports.chat_completion_port import ChatCompletionPort
 from app.infrastructure.rag.reranker import SimpleReranker
 from app.infrastructure.rag.retriever import HybridRetriever
 from app.core.llm_models import LLM_AGENT
-from app.prompts.knowledge_agent import KNOWLEDGE_AGENT_PROMPT, TOOLS
+from app.core.prompts.knowledge_agent import KNOWLEDGE_AGENT_PROMPT, TOOLS
 
 logger = logging.getLogger(__name__)
 

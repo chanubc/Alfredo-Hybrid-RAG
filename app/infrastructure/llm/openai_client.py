@@ -4,7 +4,7 @@ from app.core.config import settings
 from app.core.llm_models import LLM_ANALYSIS
 from app.application.ports.ai_analysis_port import AIAnalysisPort
 from app.domain.entities.content_analysis import ContentAnalysis
-from app.prompts.analyze_content import ANALYZE_CONTENT_PROMPT
+from app.core.prompts.analyze_content import ANALYZE_CONTENT_PROMPT
 
 
 class OpenAIRepository(AIAnalysisPort):

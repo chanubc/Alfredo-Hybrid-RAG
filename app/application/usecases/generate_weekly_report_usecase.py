@@ -21,7 +21,7 @@ from app.domain.repositories.i_link_repository import ILinkRepository
 from app.domain.repositories.i_recommendation_repository import IRecommendationRepository
 from app.domain.repositories.i_user_repository import IUserRepository
 from app.domain.scoring import compute_interest_centroid, select_reactivation_link
-from app.prompts.weekly_briefing import build_briefing_prompt
+from app.core.prompts.weekly_briefing import build_briefing_prompt
 
 logger = logging.getLogger(__name__)
 

@@ -6,7 +6,7 @@ from app.application.ports.intent_router_port import IntentRouterPort, RouterOut
 from app.core.config import settings
 from app.core.llm_models import LLM_ROUTER
 from app.domain.entities.intent import Intent
-from app.prompts.intent_classifier import INTENT_CLASSIFIER_PROMPT
+from app.core.prompts.intent_classifier import INTENT_CLASSIFIER_PROMPT
 
 logger = logging.getLogger(__name__)
 
