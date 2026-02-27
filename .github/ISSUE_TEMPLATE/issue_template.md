@@ -1,7 +1,7 @@
 ---
 name: Issue Template
 about: "기능, UI, 문서 개선을 위한 이슈 템플릿"
-title: "[FEAT] : "
+title: "[PREFIX] : "
 labels: ''
 assignees: ''
 
