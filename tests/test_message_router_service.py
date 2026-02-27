@@ -237,25 +237,40 @@ async def test_handler_map_extensibility(router_service):
 
 
 @pytest.mark.asyncio
-async def test_run_in_background_with_background_tasks(router_service):
-    """Test _run_in_background executes in background when BackgroundTasks available."""
+async def test_run_safe_with_background_tasks(router_service, mock_dependencies):
+    """Test _run_safe executes in background when BackgroundTasks available."""
     bg_tasks = AsyncMock(spec=BackgroundTasks)
     mock_coro = AsyncMock()
 
-    await router_service._run_in_background(bg_tasks, mock_coro, "arg1", "arg2")
+    await router_service._run_safe(123, bg_tasks, mock_coro, "arg1", "arg2")
 
     # Should add task to background_tasks
-    bg_tasks.add_task.assert_called_once_with(mock_coro, "arg1", "arg2")
+    bg_tasks.add_task.assert_called_once()
     # Should NOT execute directly
     assert mock_coro.called is False
 
 
 @pytest.mark.asyncio
-async def test_run_in_background_without_background_tasks(router_service):
-    """Test _run_in_background executes directly when BackgroundTasks unavailable."""
+async def test_run_safe_without_background_tasks(router_service, mock_dependencies):
+    """Test _run_safe executes directly when BackgroundTasks unavailable."""
     mock_coro = AsyncMock()
 
-    await router_service._run_in_background(None, mock_coro, "arg1", "arg2")
+    await router_service._run_safe(123, None, mock_coro, "arg1", "arg2")
 
     # Should execute directly
     mock_coro.assert_called_once_with("arg1", "arg2")
+
+
+@pytest.mark.asyncio
+async def test_run_safe_error_handling(router_service, mock_dependencies):
+    """Test _run_safe handles errors and sends error message."""
+    mock_coro = AsyncMock(side_effect=Exception("Test error"))
+
+    await router_service._run_safe(
+        123, None, mock_coro, "arg1", error_msg="Custom error"
+    )
+
+    # Should send error message
+    mock_dependencies["telegram"].send_message.assert_called_once()
+    args = mock_dependencies["telegram"].send_message.call_args[0]
+    assert "Custom error" in args[1]
