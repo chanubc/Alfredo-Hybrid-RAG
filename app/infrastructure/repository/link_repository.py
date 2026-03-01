@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -177,3 +177,67 @@ class LinkRepository(ILinkRepository):
         await self._db.execute(
             update(Link).where(Link.id == link_id).values(is_read=True)
         )
+
+    # --- Phase 4: Dashboard ---
+
+    async def get_all_links_with_metadata(
+        self, user_id: int, limit: int = 500
+    ) -> list[dict]:
+        """전체 링크 메타데이터 조회 (최신순)."""
+        result = await self._db.execute(
+            select(
+                Link.id,
+                Link.title,
+                Link.url,
+                Link.category,
+                Link.keywords,
+                Link.is_read,
+                Link.created_at,
+                Link.summary,
+            )
+            .where(Link.user_id == user_id)
+            .order_by(Link.created_at.desc())
+            .limit(limit)
+        )
+        rows = result.mappings().all()
+        return [
+            {
+                "id": r["id"],
+                "title": r["title"],
+                "url": r["url"],
+                "category": r["category"],
+                "keywords": r["keywords"],
+                "is_read": r["is_read"],
+                "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+                "summary": r["summary"],
+            }
+            for r in rows
+        ]
+
+    async def get_links_with_embeddings(
+        self, user_id: int, limit: int = 300
+    ) -> list[dict]:
+        """summary_embedding이 있는 링크 조회 (PCA용)."""
+        result = await self._db.execute(
+            select(Link.id, Link.title, Link.category, Link.summary_embedding)
+            .where(
+                Link.user_id == user_id,
+                Link.summary_embedding.isnot(None),
+            )
+            .order_by(Link.created_at.desc())
+            .limit(limit)
+        )
+        rows = result.mappings().all()
+        return [
+            {
+                "id": r["id"],
+                "title": r["title"],
+                "category": r["category"],
+                "summary_embedding": list(r["summary_embedding"]),
+            }
+            for r in rows
+        ]
+
+    async def delete_link(self, link_id: int) -> None:
+        """링크 삭제 (CASCADE로 Chunk 자동 삭제)."""
+        await self._db.execute(delete(Link).where(Link.id == link_id))
