@@ -6,6 +6,7 @@ from dashboard.api_client import (
     cached_get_drift,
     cached_get_reactivation,
     cached_get_stats,
+    make_redirect_url,
 )
 from dashboard.logger import logger
 
@@ -120,9 +121,9 @@ def _render_recommendation_card(
                 st.caption(f"Score: {score:.3f} (유사도 {link.get('similarity', 0):.2f} · 망각 {link.get('recency', 0):.2f})")
 
         with col2:
-            url = link.get("url")
-            if url:
-                st.link_button("🔗", url, width='stretch')
+            if link.get("url"):
+                redirect_url = make_redirect_url(link["id"], st.session_state["jwt_token"])
+                st.link_button("🔗", redirect_url, width='stretch')
             if st.button("✅", key=f"home_read_{link['id']}", help="읽음 처리",
                          width='stretch'):
                 try:

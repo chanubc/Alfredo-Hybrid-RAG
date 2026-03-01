@@ -1,7 +1,7 @@
 """🔍 탐색 탭 — 스마트 검색 + 잊고 있던 글."""
 import streamlit as st
 
-from dashboard.api_client import DashboardAPIClient, cached_get_reactivation
+from dashboard.api_client import DashboardAPIClient, cached_get_reactivation, make_redirect_url
 from dashboard.logger import logger
 
 CATEGORIES = ["전체", "AI", "Dev", "Career", "Business", "Science", "Other"]
@@ -93,9 +93,10 @@ def _render_result_card(r: dict) -> None:
             if chunk:
                 st.write(chunk[:150] + ("..." if len(chunk) > 150 else ""))
         with col2:
-            url = r.get("url")
-            if url:
-                st.link_button("🔗 열기", url, width='stretch')
+            link_id = r.get("link_id")
+            if link_id and r.get("url"):
+                redirect_url = make_redirect_url(link_id, st.session_state["jwt_token"])
+                st.link_button("🔗 열기", redirect_url, width='stretch')
 
 
 def _render_forgotten_card(item: dict) -> None:
@@ -109,6 +110,6 @@ def _render_forgotten_card(item: dict) -> None:
             if summary:
                 st.write(summary[:120] + ("..." if len(summary) > 120 else ""))
         with col2:
-            url = item.get("url")
-            if url:
-                st.link_button("🔗 열기", url, width='stretch')
+            if item.get("id") and item.get("url"):
+                redirect_url = make_redirect_url(item["id"], st.session_state["jwt_token"])
+                st.link_button("🔗 열기", redirect_url, width='stretch')

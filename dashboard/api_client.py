@@ -8,6 +8,11 @@ BASE_URL = os.getenv("DASHBOARD_API_URL", "http://localhost:8000")
 _TIMEOUT = 30.0
 
 
+def make_redirect_url(link_id: int, jwt_token: str, base_url: str = BASE_URL) -> str:
+    """링크 클릭 시 is_read 자동 처리되는 리다이렉트 URL 생성."""
+    return f"{base_url.rstrip('/')}/api/v1/links/{link_id}/go?token={jwt_token}"
+
+
 class DashboardAPIClient:
     def __init__(self, jwt_token: str, base_url: str = BASE_URL):
         self._base = base_url.rstrip("/")

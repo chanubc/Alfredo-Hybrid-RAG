@@ -3,7 +3,7 @@ import math
 
 import streamlit as st
 
-from dashboard.api_client import DashboardAPIClient
+from dashboard.api_client import DashboardAPIClient, make_redirect_url
 from dashboard.logger import logger
 
 CATEGORIES = ["전체", "AI", "Dev", "Career", "Business", "Science", "Other", "Memo"]
@@ -172,7 +172,8 @@ def _render_link_card(link: dict) -> None:
             header_col1, header_col2 = st.columns([0.8, 0.2])
             with header_col1:
                 if url:
-                    st.markdown(f"**[{title}]({url})**")
+                    redirect_url = make_redirect_url(link_id, st.session_state["jwt_token"])
+                    st.markdown(f"**[{title}]({redirect_url})**")
                 else:
                     st.markdown(f"**{title}**")
             with header_col2:
