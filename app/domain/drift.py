@@ -5,7 +5,7 @@ TVD  = 0.5 * Σ|P_current(c) - P_past(c)|
 """
 from __future__ import annotations
 
-ALLOWED_CATEGORIES = ["AI", "Dev", "Career", "Business", "Design", "Science", "Other"]
+ALLOWED_CATEGORIES = ["AI", "Dev", "Career", "Business", "Science", "Other"]
 
 
 def calculate_category_distribution(categories: list[str]) -> dict[str, float]:
