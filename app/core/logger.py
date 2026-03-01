@@ -20,10 +20,14 @@ class _InterceptHandler(logging.Handler):
         except ValueError:
             level = str(record.levelno)
 
-        frame, depth = sys._getframe(6), 6
-        while frame and frame.f_code.co_filename == logging.__file__:
-            frame = frame.f_back
-            depth += 1
+        try:
+            frame, depth = sys._getframe(6), 6
+            while frame and frame.f_code.co_filename == logging.__file__:
+                frame = frame.f_back
+                depth += 1
+        except ValueError:
+            # 호출 스택이 얕은 경우 (테스트/특정 런타임) 기본값 사용
+            depth = 6
 
         logger.opt(depth=depth, exception=record.exc_info).log(
             level, record.getMessage()
@@ -48,7 +52,7 @@ def setup_logging(level: str = "INFO") -> None:
             "<level>{message}</level>"
         ),
         backtrace=True,
-        diagnose=True,
+        diagnose=False,  # 기본값: 민감정보(토큰/키) 유출 방지
     )
 
     # 표준 logging 핸들러 전체 인터셉트
