@@ -1,5 +1,3 @@
-import logging
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -8,7 +6,7 @@ from app.application.ports.state_store_port import StateStorePort
 from app.application.ports.telegram_port import TelegramPort
 from app.domain.repositories.i_user_repository import IUserRepository
 
-logger = logging.getLogger(__name__)
+from app.core.logger import logger
 
 
 class AuthService:
