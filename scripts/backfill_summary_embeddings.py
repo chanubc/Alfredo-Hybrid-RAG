@@ -9,7 +9,7 @@ Usage:
 import asyncio
 from datetime import datetime, timedelta, timezone
 
-from loguru import logger
+from app.core.logger import logger
 from sqlalchemy import text
 
 from app.infrastructure.database import AsyncSessionLocal
