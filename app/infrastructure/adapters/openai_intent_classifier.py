@@ -29,7 +29,7 @@ class OpenAIIntentClassifier(IntentRouterPort):
             result = response.choices[0].message.parsed
             if result is None:
                 return RouterOutput(intent=Intent.UNKNOWN)
-            logger.debug("Classified: '{}' → intent={}, query={}", text, result.intent, result.query)
+            logger.debug(f"Classified: '{text}' → intent={result.intent}, query={result.query}")
             return result
         except Exception:
             logger.exception("Intent classification failed, fallback to ASK")

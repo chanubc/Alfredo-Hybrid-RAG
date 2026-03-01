@@ -76,7 +76,7 @@ class KnowledgeAgent:
             await self._telegram.send_message(telegram_id, answer)
 
         except Exception as exc:
-            logger.exception("KnowledgeAgent.handle error (telegram_id={})", telegram_id)
+            logger.exception(f"KnowledgeAgent.handle error (telegram_id={telegram_id})")
             await self._telegram.send_message(
                 telegram_id, f"❌ 처리 실패: {str(exc)[:200]}"
             )

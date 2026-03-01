@@ -81,7 +81,7 @@ class MessageRouterService:
             try:
                 await coro(*args)
             except Exception as e:
-                logger.exception("Error in {}: {}", coro.__name__, e)
+                logger.exception(f"Error in {coro.__name__}: {e}")
                 await self._telegram.send_message(telegram_id, error_msg)
 
         if background_tasks:
@@ -122,7 +122,7 @@ class MessageRouterService:
             routed = await self._intent_classifier.classify(text)
             effective_query = routed.query or text
         except Exception as e:
-            logger.exception("Error classifying intent: {}", e)
+            logger.exception(f"Error classifying intent: {e}")
             await self._telegram.send_message(
                 telegram_id,
                 "봇 사용법이 궁금하시면 /help 를 입력해보세요.",
@@ -139,7 +139,7 @@ class MessageRouterService:
                     "봇 사용법이 궁금하시면 /help 를 입력해보세요.",
                 )
         except Exception as e:
-            logger.exception("Error handling intent: {}", e)
+            logger.exception(f"Error handling intent: {e}")
             await self._telegram.send_message(telegram_id, "처리 중 오류가 발생했습니다.")
 
     async def _process_memo(

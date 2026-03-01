@@ -33,4 +33,4 @@ async def _run_weekly_report() -> None:
             await usecase.execute_for_all_users()
             logger.info("Weekly report job completed successfully")
         except Exception as exc:
-            logger.exception("Weekly report job failed: {}", exc)
+            logger.exception(f"Weekly report job failed: {exc}")

@@ -41,7 +41,7 @@ class SaveMemoUseCase:
             # 0. 즉시 피드백 (사용자에게 처리 시작 알림)
             await self._telegram.send_message(telegram_id, "📝 메모를 저장하는 중입니다...")
 
-            logger.info("[메모 처리 시작] 유저: {}, 내용: {}", telegram_id, memo)
+            logger.info(f"[메모 처리 시작] 유저: {telegram_id}, 내용: {memo}")
             await self._user_repo.ensure_exists(telegram_id)
             link = await self._link_repo.save_memo(
                 user_id=telegram_id,

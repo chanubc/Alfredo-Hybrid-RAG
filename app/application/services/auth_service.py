@@ -47,7 +47,7 @@ class AuthService:
             try:
                 database_id = await self._notion.create_database(access_token, page_id)
             except Exception:
-                logger.exception("Notion DB 생성 실패 (telegram_id=%s)", telegram_id)
+                logger.exception(f"Notion DB 생성 실패 (telegram_id={telegram_id})")
 
         # 3. 유저 크리덴셜 DB 저장
         await self._user_repo.upsert_notion_credentials(

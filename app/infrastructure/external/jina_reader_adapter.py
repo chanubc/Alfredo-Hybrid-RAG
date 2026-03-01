@@ -43,5 +43,5 @@ class JinaReaderAdapter(ScraperPort):
                     raise ValueError("Jina Reader returned empty content")
                 return content, "jina"
         except Exception as exc:
-            logger.warning("Jina Reader failed for {} ({}), falling back to OG scraper", url, exc)
+            logger.warning(f"Jina Reader failed for {url} ({exc}), falling back to OG scraper")
             return await self._fallback.scrape(url)

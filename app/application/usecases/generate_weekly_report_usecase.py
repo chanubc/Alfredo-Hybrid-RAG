@@ -51,7 +51,7 @@ class GenerateWeeklyReportUseCase:
             except Exception as exc:
                 await self._db.rollback()
                 logger.exception(
-                    "Weekly report failed for user {}: {}", user.telegram_id, exc
+                    f"Weekly report failed for user {user.telegram_id}: {exc}"
                 )
 
     async def execute(self, user_id: int) -> None:
@@ -75,7 +75,7 @@ class GenerateWeeklyReportUseCase:
         centroid = compute_interest_centroid(recent_embs)
 
         if centroid is None:
-            logger.info("User {} has no embeddings, skipping weekly report", user_id)
+            logger.info(f"User {user_id} has no embeddings, skipping weekly report")
             return
 
         # 3. 최근 14일 추천 이력 제외
@@ -88,7 +88,7 @@ class GenerateWeeklyReportUseCase:
         best = select_reactivation_link(candidates, centroid)
 
         if best is None:
-            logger.info("User {} has no reactivation candidates, skipping", user_id)
+            logger.info(f"User {user_id} has no reactivation candidates, skipping")
             return
 
         # 5. LLM 브리핑 생성
