@@ -142,7 +142,7 @@ class TelegramRepository(TelegramPort):
     async def send_dashboard_button(self, chat_id: int, dashboard_url: str) -> None:
         """대시보드 접속 인라인 버튼 전송."""
         async with httpx.AsyncClient() as client:
-            await client.post(
+            resp = await client.post(
                 f"{self._base}/sendMessage",
                 json={
                     "chat_id": chat_id,
@@ -159,6 +159,10 @@ class TelegramRepository(TelegramPort):
                     },
                 },
             )
+            if not resp.is_success:
+                logger.error(
+                    f"send_dashboard_button failed {resp.status_code}: {resp.text}"
+                )
 
     async def set_webhook(self, url: str) -> None:
         async with httpx.AsyncClient() as client:

@@ -85,27 +85,41 @@ class DashboardAPIClient:
     def search(self, q: str, top_k: int = 10) -> dict:
         return self._get("/api/v1/dashboard/search/me", q=q, top_k=top_k)
 
+    def close(self) -> None:
+        self._client.close()
+
+    def __enter__(self) -> "DashboardAPIClient":
+        return self
+
+    def __exit__(self, *args) -> None:
+        self.close()
+
 
 # ---------------------------------------------------------------------------
 # Cached fetch helpers (TTL=30s)
 # 같은 JWT로 30초 이내 재호출은 캐시 반환 → 탭 간 중복 API 호출 방지
+# context manager로 감싸 httpx.Client 소켓 누수 방지
 # ---------------------------------------------------------------------------
 
 @st.cache_data(ttl=30, show_spinner=False)
 def cached_get_stats(jwt_token: str, base_url: str = BASE_URL) -> dict:
-    return DashboardAPIClient(jwt_token=jwt_token, base_url=base_url).get_stats()
+    with DashboardAPIClient(jwt_token=jwt_token, base_url=base_url) as c:
+        return c.get_stats()
 
 
 @st.cache_data(ttl=30, show_spinner=False)
 def cached_get_drift(jwt_token: str, base_url: str = BASE_URL) -> dict:
-    return DashboardAPIClient(jwt_token=jwt_token, base_url=base_url).get_drift()
+    with DashboardAPIClient(jwt_token=jwt_token, base_url=base_url) as c:
+        return c.get_drift()
 
 
 @st.cache_data(ttl=30, show_spinner=False)
 def cached_get_reactivation(jwt_token: str, base_url: str = BASE_URL) -> dict:
-    return DashboardAPIClient(jwt_token=jwt_token, base_url=base_url).get_reactivation()
+    with DashboardAPIClient(jwt_token=jwt_token, base_url=base_url) as c:
+        return c.get_reactivation()
 
 
 @st.cache_data(ttl=30, show_spinner=False)
 def cached_get_embeddings(jwt_token: str, base_url: str = BASE_URL) -> dict:
-    return DashboardAPIClient(jwt_token=jwt_token, base_url=base_url).get_embeddings()
+    with DashboardAPIClient(jwt_token=jwt_token, base_url=base_url) as c:
+        return c.get_embeddings()
