@@ -5,7 +5,9 @@ class TelegramPort(ABC):
     """Telegram API 통신 Port."""
 
     @abstractmethod
-    async def send_message(self, chat_id: int, text: str) -> None:
+    async def send_message(
+        self, chat_id: int, text: str, reply_markup: dict | None = None
+    ) -> None:
         """메시지 전송."""
         pass
 
@@ -39,8 +41,15 @@ class TelegramPort(ABC):
         pass
 
     @abstractmethod
-    async def send_search_results(self, chat_id: int, query: str, results: list[dict]) -> None:
+    async def send_search_results(
+        self, chat_id: int, query: str, results: list[dict]
+    ) -> None:
         """검색 결과 전송."""
+        pass
+
+    @abstractmethod
+    async def send_dashboard_button(self, chat_id: int, dashboard_url: str) -> None:
+        """대시보드 접속용 인라인 버튼 전송."""
         pass
 
     @abstractmethod
