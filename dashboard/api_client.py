@@ -12,34 +12,31 @@ class DashboardAPIClient:
     def __init__(self, jwt_token: str, base_url: str = BASE_URL):
         self._base = base_url.rstrip("/")
         self._headers = {"Authorization": f"Bearer {jwt_token}"}
+        self._client = httpx.Client(timeout=_TIMEOUT)
 
     def _get(self, path: str, **params) -> dict:
-        with httpx.Client(timeout=_TIMEOUT) as client:
-            r = client.get(
-                f"{self._base}{path}",
-                headers=self._headers,
-                params={k: v for k, v in params.items() if v is not None},
-            )
-            r.raise_for_status()
-            return r.json()
+        r = self._client.get(
+            f"{self._base}{path}",
+            headers=self._headers,
+            params={k: v for k, v in params.items() if v is not None},
+        )
+        r.raise_for_status()
+        return r.json()
 
     def _patch(self, path: str) -> dict:
-        with httpx.Client(timeout=_TIMEOUT) as client:
-            r = client.patch(f"{self._base}{path}", headers=self._headers)
-            r.raise_for_status()
-            return r.json()
+        r = self._client.patch(f"{self._base}{path}", headers=self._headers)
+        r.raise_for_status()
+        return r.json()
 
     def _delete(self, path: str) -> dict:
-        with httpx.Client(timeout=_TIMEOUT) as client:
-            r = client.delete(f"{self._base}{path}", headers=self._headers)
-            r.raise_for_status()
-            return r.json()
+        r = self._client.delete(f"{self._base}{path}", headers=self._headers)
+        r.raise_for_status()
+        return r.json()
 
     def _post(self, path: str) -> dict:
-        with httpx.Client(timeout=_TIMEOUT) as client:
-            r = client.post(f"{self._base}{path}", headers=self._headers)
-            r.raise_for_status()
-            return r.json()
+        r = self._client.post(f"{self._base}{path}", headers=self._headers)
+        r.raise_for_status()
+        return r.json()
 
     def verify_token(self) -> dict | None:
         """GET /api/v1/dashboard/auth/me — returns user info or None on error."""
