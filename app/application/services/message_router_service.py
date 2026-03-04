@@ -1,3 +1,5 @@
+import re
+
 from fastapi import BackgroundTasks
 
 from app.application.ports.knowledge_agent_port import KnowledgeAgentPort
@@ -119,6 +121,7 @@ class MessageRouterService:
 
         # 일반 텍스트 → 즉시 1차 응답 후 Intent 분류 + 처리
         if self._is_likely_ask_text(text):
+            await self._telegram.send_message(telegram_id, "🤔 분석 중입니다...")
             await self._process_ask(telegram_id, text, background_tasks)
             return
 
@@ -289,7 +292,8 @@ class MessageRouterService:
             return False
 
         # 검색/메모 신호가 강하면 classifier에 맡긴다.
-        classifier_first_hints = (
+        # 오탐 위험이 없는 긴 힌트는 substring 매칭, 짧은 영어 단어는 word-boundary 매칭
+        classifier_first_substrings = (
             "검색",
             "찾아",
             "search",
@@ -298,8 +302,6 @@ class MessageRouterService:
             "메모",
             "기록",
             "저장",
-            "help",
-            "use",
             "usage",
             "guide",
             "instruction",
@@ -307,7 +309,6 @@ class MessageRouterService:
             "도움",
             "사용법",
             "사용",
-            "start",
             "시작",
             "notion",
             "connect",
@@ -315,10 +316,15 @@ class MessageRouterService:
             "로그인",
             "login",
         )
-        if any(hint in normalized for hint in classifier_first_hints):
+        # 단독 단어로만 매칭 (because/excuse의 "use", shower의 "how" 등 오탐 방지)
+        classifier_first_words = ("help", "use", "start")
+
+        if any(hint in normalized for hint in classifier_first_substrings):
+            return False
+        if any(re.search(rf"\b{word}\b", normalized) for word in classifier_first_words):
             return False
 
-        question_hints = (
+        question_substrings = (
             "?",
             "？",
             "무엇",
@@ -329,10 +335,12 @@ class MessageRouterService:
             "설명",
             "정리",
             "궁금",
-            "what",
             "why",
-            "how",
             "explain",
             "difference",
         )
-        return any(hint in normalized for hint in question_hints)
+        question_words = ("what", "how")
+
+        return any(hint in normalized for hint in question_substrings) or any(
+            re.search(rf"\b{word}\b", normalized) for word in question_words
+        )
