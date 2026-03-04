@@ -45,7 +45,7 @@ class KnowledgeAgent:
             )
 
             if not response.tool_calls:
-                logger.warning(f"tool_choice=required but no tool_calls returned (telegram_id={telegram_id})")
+                logger.warning("tool_choice=required but no tool_calls returned (telegram_id=%d)", telegram_id)
                 await self._telegram.send_message(telegram_id, "답변을 생성할 수 없습니다.")
                 return
 
