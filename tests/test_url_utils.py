@@ -54,3 +54,50 @@ def test_mixed_tracking_and_content_params():
     assert "q=python" in result
     assert "page=2" in result
     assert "utm_campaign" not in result
+
+
+# ── HOST_RULES 기반 도메인별 처리 ─────────────────────────────────────────────
+
+def test_twitter_t_and_s_stripped():
+    url = "https://twitter.com/user/status/123?t=ABCDEF&s=20"
+    result = normalize_url(url)
+    assert "t=" not in result
+    assert "s=" not in result
+
+
+def test_x_com_t_and_s_stripped():
+    url = "https://x.com/user/status/456?t=ABCDEF&s=20&lang=ko"
+    result = normalize_url(url)
+    assert "t=" not in result
+    assert "s=" not in result
+    assert "lang=ko" in result
+
+
+def test_youtube_t_timestamp_preserved():
+    """YouTube ?t=90s는 콘텐츠 시작 위치이므로 보존되어야 한다."""
+    url = "https://www.youtube.com/watch?v=VIDEO_ID&t=90s"
+    result = normalize_url(url)
+    assert "v=VIDEO_ID" in result
+    assert "t=90s" in result
+
+
+def test_general_site_source_preserved():
+    """일반 사이트 ?source=feed는 전역 제거 대상이 아니므로 보존되어야 한다."""
+    url = "https://example.com/article?source=feed&id=42"
+    result = normalize_url(url)
+    assert "source=feed" in result
+    assert "id=42" in result
+
+
+def test_hash_router_fragment_preserved():
+    """SPA hash-router(#/path) fragment는 실제 라우트이므로 보존되어야 한다."""
+    url = "https://app.example.com/#/post/123"
+    result = normalize_url(url)
+    assert "#/post/123" in result
+
+
+def test_plain_anchor_fragment_stripped():
+    """일반 앵커(#section-1) fragment는 제거되어야 한다."""
+    url = "https://example.com/article#section-1"
+    result = normalize_url(url)
+    assert "#" not in result
