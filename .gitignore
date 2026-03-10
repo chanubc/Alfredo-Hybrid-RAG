@@ -58,3 +58,4 @@ tmpclaude-*
 
 # OMX session/runtime artifacts
 .omx/
+.omc/
