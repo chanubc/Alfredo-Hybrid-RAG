@@ -62,6 +62,7 @@ class ChunkRepository(IChunkRepository):
                         l.summary,
                         l.category,
                         l.keywords,
+                        l.content_source,
                         c.content AS chunk_content,
                         1 - (c.embedding <=> CAST(:emb AS vector)) AS dense_score
                     FROM chunks c
@@ -85,7 +86,9 @@ class ChunkRepository(IChunkRepository):
                     d.summary,
                     d.category,
                     d.keywords,
+                    d.content_source,
                     d.chunk_content,
+                    d.dense_score,
                     (d.dense_score * 0.7 + COALESCE(s.sparse_score, 0) * 0.3) AS similarity
                 FROM dense d
                 LEFT JOIN sparse s ON d.chunk_id = s.chunk_id
@@ -106,7 +109,9 @@ class ChunkRepository(IChunkRepository):
                     l.summary,
                     l.category,
                     l.keywords,
+                    l.content_source,
                     c.content   AS chunk_content,
+                    1 - (c.embedding <=> CAST(:emb AS vector)) AS dense_score,
                     1 - (c.embedding <=> CAST(:emb AS vector)) AS similarity
                 FROM chunks c
                 JOIN links l ON c.link_id = l.id
