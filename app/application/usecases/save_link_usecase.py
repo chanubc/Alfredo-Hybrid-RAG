@@ -11,6 +11,7 @@ from app.application.ports.scraper_port import ScraperPort
 from app.application.ports.telegram_port import TelegramPort
 from app.domain.repositories.i_user_repository import IUserRepository
 from app.utils.text import split_chunks, split_markdown
+from app.utils.url import normalize_url
 
 
 class SaveLinkUseCase:
@@ -39,6 +40,7 @@ class SaveLinkUseCase:
 
         웹훅은 이 함수 호출 즉시 응답하므로, 모든 사용자 피드백은 이 함수 내에서 관리됨.
         """
+        url = normalize_url(url)
         try:
             if await self._link_repo.exists_by_user_and_url(telegram_id, url):
                 await self._telegram.send_message(telegram_id, "⚠️ 이미 저장된 링크입니다.")

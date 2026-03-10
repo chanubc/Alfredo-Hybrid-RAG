@@ -84,3 +84,29 @@ async def test_embedding_batched_once_for_summary_and_chunks(save_link_usecase, 
         list(zip(raw_chunks, [[0.3, 0.4]])),
     )
     db.commit.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_url_normalized_before_duplicate_check(save_link_usecase, save_link_dependencies):
+    """트래킹 파라미터가 제거된 URL로 중복 체크가 수행되어야 한다."""
+    link_repo = save_link_dependencies["link_repo"]
+    link_repo.exists_by_user_and_url.return_value = True
+
+    dirty_url = "https://www.threads.com/@user/post/ABC?xmt=SESSION1&slof=1"
+    clean_url = "https://www.threads.com/@user/post/ABC"
+
+    await save_link_usecase.execute(telegram_id=111, url=dirty_url, memo=None)
+
+    link_repo.exists_by_user_and_url.assert_called_once_with(111, clean_url)
+
+
+@pytest.mark.asyncio
+async def test_url_without_tracking_params_unchanged(save_link_usecase, save_link_dependencies):
+    """트래킹 파라미터 없는 URL은 그대로 중복 체크에 사용된다."""
+    link_repo = save_link_dependencies["link_repo"]
+    link_repo.exists_by_user_and_url.return_value = True
+
+    url = "https://example.com/article?id=42"
+    await save_link_usecase.execute(telegram_id=111, url=url, memo=None)
+
+    link_repo.exists_by_user_and_url.assert_called_once_with(111, url)
