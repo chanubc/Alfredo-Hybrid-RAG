@@ -64,3 +64,31 @@ python scripts/eval_retriever.py --real --user {telegram_user_id}
 
 실제 DB 평가 시 `scripts/eval_retriever.py` 내 `REAL_EVAL_QUERIES` 리스트에
 쿼리와 정답 URL을 채워넣으면 동일한 지표를 실데이터 기준으로 측정할 수 있다.
+
+---
+
+## 추가 개선 (2026-03-11)
+
+### 문제상황
+
+- 같은 링크의 여러 chunk가 검색 결과에 중복 등장 (link_id dedupe 없음)
+- "하나 증권 공고" 같이 띄어쓰기로 입력 시 DB 키워드 "하나증권"과 exact match 실패 → keyword scoring 무효화
+- "공고" 검색 시 "채용공고" 키워드와 매칭 실패 (exact set intersection 한계)
+
+### 해결방안
+
+1. **link_id dedupe** (`_dedupe_by_link`): 동일 링크의 청크 중 최고 점수만 유지
+2. **query variant 생성** (`_build_query_variants`): 원문 + 공백제거본 + bi-gram 결합으로 변형 생성
+3. **substring keyword 매칭** (`_token_matches`): query token이 keyword 안에 포함되는 방향만 허용 (역방향 제외로 false positive 방지)
+
+### 성과 (14개 케이스 기준 — 기존 10개 + 신규 4개)
+
+| 지표 | Dense-only | PR#68 | Today | PR#68↑ | Today 추가↑ | 누적↑ |
+|------|------|------|------|------|------|------|
+| **MRR** | 0.2952 | 0.7357 | **0.9286** | +149% | +26% | **+214%** |
+| **NDCG@5** | 0.4737 | 0.7813 | **0.9415** | +65% | +21% | **+99%** |
+| **신규 케이스 1위** | 0/4 | 0/4 | **4/4** | — | **+100%** | — |
+
+**실서비스 검증 ("하나증권 공고" 쿼리):**
+- Before: 챗GPT 자소서 1위 (오답), 하나증권 공개채용 5위, 동일 링크 중복 등장
+- After: **하나증권 2026 신입사원 공개채용 1위 (60%)**, 중복 결과 제거
