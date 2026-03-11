@@ -2,21 +2,24 @@
   <!-- 배경 -->
   <rect width="600" height="600" fill="#f9fafb"/>
 
+  <!-- 의존성 화살표 마커 -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#64748b"/>
+    </marker>
+  </defs>
+
   <!-- 가장 바깥쪽: Presentation (빨강) -->
-  <circle cx="300" cy="300" r="280" fill="none" stroke="#ef4444" stroke-width="2" opacity="0.3"/>
-  <circle cx="300" cy="300" r="280" fill="#fecaca" opacity="0.1"/>
+  <circle cx="300" cy="300" r="280" fill="#fecaca" fill-opacity="0.1" stroke="#ef4444" stroke-width="2" stroke-opacity="0.3"/>
 
   <!-- Infrastructure (주황) -->
-  <circle cx="300" cy="300" r="210" fill="none" stroke="#f97316" stroke-width="2" opacity="0.3"/>
-  <circle cx="300" cy="300" r="210" fill="#fed7aa" opacity="0.1"/>
+  <circle cx="300" cy="300" r="210" fill="#fed7aa" fill-opacity="0.1" stroke="#f97316" stroke-width="2" stroke-opacity="0.3"/>
 
   <!-- Application (초록) -->
-  <circle cx="300" cy="300" r="140" fill="none" stroke="#22c55e" stroke-width="2" opacity="0.3"/>
-  <circle cx="300" cy="300" r="140" fill="#bbf7d0" opacity="0.1"/>
+  <circle cx="300" cy="300" r="140" fill="#bbf7d0" fill-opacity="0.1" stroke="#22c55e" stroke-width="2" stroke-opacity="0.3"/>
 
   <!-- Domain (파랑 - 가장 안쪽) -->
-  <circle cx="300" cy="300" r="70" fill="none" stroke="#3b82f6" stroke-width="2" opacity="0.3"/>
-  <circle cx="300" cy="300" r="70" fill="#bfdbfe" opacity="0.1"/>
+  <circle cx="300" cy="300" r="70" fill="#bfdbfe" fill-opacity="0.1" stroke="#3b82f6" stroke-width="2" stroke-opacity="0.3"/>
 
   <!-- 텍스트 라벨 -->
   <!-- Presentation -->
@@ -51,15 +54,13 @@
     Pure Logic
   </text>
 
-  <!-- 의존성 화살표 (바깥쪽→안쪽) -->
-  <defs>
-    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-      <polygon points="0 0, 10 3, 0 6" fill="#64748b"/>
-    </marker>
-  </defs>
-  <path d="M 300 140 L 300 70" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrowhead)" stroke-dasharray="5,5"/>
-  <path d="M 300 210 L 300 140" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrowhead)" stroke-dasharray="5,5"/>
-  <path d="M 300 280 L 300 210" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrowhead)" stroke-dasharray="5,5"/>
+  <!-- 의존성 화살표 (바깥쪽→안쪽, 각 원의 상단 경계 사용) -->
+  <!-- Presentation(y=20) → Infrastructure(y=90) -->
+  <path d="M 300 20 L 300 90" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrowhead)" stroke-dasharray="5,5"/>
+  <!-- Infrastructure(y=90) → Application(y=160) -->
+  <path d="M 300 90 L 300 160" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrowhead)" stroke-dasharray="5,5"/>
+  <!-- Application(y=160) → Domain(y=230) -->
+  <path d="M 300 160 L 300 230" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrowhead)" stroke-dasharray="5,5"/>
 
   <!-- 범례 -->
   <text x="20" y="20" font-size="12" font-weight="bold" fill="#1f2937">의존성 방향: 안쪽 ← 바깥쪽</text>
