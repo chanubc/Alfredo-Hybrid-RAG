@@ -106,14 +106,15 @@ def _build_query_variants(query: str) -> list[str]:
 
 
 def _token_matches(query_token: str, keyword: str) -> bool:
-    """부분 문자열 포함 여부. 길이 2 이상에서만 substring match 허용."""
+    """부분 문자열 포함 여부. query_token이 keyword 안에 있는 방향만 허용.
+
+    keyword in query_token 방향은 compact variant에서 과도한 boost를 유발하므로 제외.
+    """
     q = query_token.lower()
     k = keyword.lower()
     if q == k:
         return True
     if len(q) >= 2 and q in k:
-        return True
-    if len(k) >= 2 and k in q:
         return True
     return False
 
