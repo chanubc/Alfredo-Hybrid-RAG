@@ -124,8 +124,8 @@ class MessageRouterService:
         try:
             routed = await self._intent_classifier.classify(text)
             effective_query = routed.query or text
-            if routed.intent == Intent.MEMO_RECALL and routed.query is None:
-                effective_query = ""
+            if routed.intent == Intent.MEMO_RECALL:
+                effective_query = (routed.query or "").strip()
         except Exception as e:
             logger.exception(f"Error classifying intent: {e}")
             await self._telegram.send_message(
@@ -312,7 +312,10 @@ class MessageRouterService:
             query=query,
             time_filter=time_filter,
         )
-        filter_text = time_filter or "recent"
+        normalized_filter = (
+            time_filter if time_filter in self._ALLOWED_TIME_FILTERS else "recent"
+        )
+        filter_text = html.escape(normalized_filter)
         if not results:
             await self._telegram.send_message(
                 telegram_id,
@@ -393,3 +396,4 @@ class MessageRouterService:
         return any(hint in normalized for hint in question_substrings) or any(
             re.search(rf"\b{word}\b", normalized) for word in question_words
         )
+    _ALLOWED_TIME_FILTERS = {"today", "yesterday", "last_7_days", "recent"}

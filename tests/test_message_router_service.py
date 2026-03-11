@@ -143,6 +143,24 @@ async def test_intent_memo_recall_dispatch(router_service, mock_dependencies):
 
 
 @pytest.mark.asyncio
+async def test_intent_memo_recall_empty_query_stays_empty(router_service, mock_dependencies):
+    mock_dependencies["intent_classifier"].classify.return_value = ClassifierOutput(
+        intent=Intent.MEMO_RECALL,
+        query="",
+        time_filter="recent",
+    )
+    mock_dependencies["recall_memo_uc"].execute.return_value = []
+
+    await router_service.route(123, "어제 메모 가져와")
+
+    mock_dependencies["recall_memo_uc"].execute.assert_called_once_with(
+        telegram_id=123,
+        query="",
+        time_filter="recent",
+    )
+
+
+@pytest.mark.asyncio
 async def test_memo_recall_sends_formatted_results(router_service, mock_dependencies):
     mock_dependencies["intent_classifier"].classify.return_value = ClassifierOutput(
         intent=Intent.MEMO_RECALL,
@@ -179,6 +197,22 @@ async def test_memo_recall_empty_result_sends_not_found(router_service, mock_dep
     last_call = mock_dependencies["telegram"].send_message.call_args_list[-1][0]
     assert "찾지 못했어요" in last_call[1]
     assert "today" in last_call[1]
+
+
+@pytest.mark.asyncio
+async def test_memo_recall_invalid_time_filter_falls_back_to_recent(router_service, mock_dependencies):
+    mock_dependencies["intent_classifier"].classify.return_value = ClassifierOutput(
+        intent=Intent.MEMO_RECALL,
+        query=None,
+        time_filter="<b>bad</b>",
+    )
+    mock_dependencies["recall_memo_uc"].execute.return_value = []
+
+    await router_service.route(123, "메모 보여줘")
+
+    last_call = mock_dependencies["telegram"].send_message.call_args_list[-1][0]
+    assert "recent" in last_call[1]
+    assert "<b>bad</b>" not in last_call[1]
 
 
 @pytest.mark.asyncio
