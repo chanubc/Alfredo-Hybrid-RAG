@@ -67,7 +67,7 @@ async def test_send_ask_response_adds_source_mark_read_buttons(telegram_repo):
 
 
 @pytest.mark.asyncio
-async def test_send_menu_message_has_back_row_at_bottom(telegram_repo):
+async def test_send_menu_message_does_not_include_back_row(telegram_repo):
     await telegram_repo.send_menu_message(
         chat_id=123,
         dashboard_url="https://dash.example.com",
@@ -75,9 +75,10 @@ async def test_send_menu_message_has_back_row_at_bottom(telegram_repo):
     )
 
     payload = telegram_repo._post_message.await_args.args[0]  # type: ignore[attr-defined]
-    assert payload["reply_markup"]["inline_keyboard"][-1] == [
-        {"text": "« Back to Menu", "callback_data": "nav:menu"}
-    ]
+    assert all(
+        row != [{"text": "« Back to Menu", "callback_data": "nav:menu"}]
+        for row in payload["reply_markup"]["inline_keyboard"]
+    )
 
 
 @pytest.mark.asyncio
@@ -89,3 +90,4 @@ async def test_send_weekly_report_adds_back_button_row(telegram_repo):
         [{"text": "✅ 읽음 처리", "callback_data": "mark_read:9"}],
         [{"text": "« Back to Menu", "callback_data": "nav:menu"}],
     ]
+    assert telegram_repo._post_message.await_args.kwargs["raise_on_error"] is True  # type: ignore[attr-defined]

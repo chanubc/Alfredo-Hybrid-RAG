@@ -2,21 +2,20 @@ import html
 
 import httpx
 
+from app.application.constants.telegram_navigation import back_to_menu_row
+from app.application.ports.telegram_port import TelegramPort
 from app.core.config import settings
 from app.domain.entities.knowledge_source import KnowledgeSource
-from app.application.ports.telegram_port import TelegramPort
 
 from app.core.logger import logger
 
 
 class TelegramRepository(TelegramPort):
-    _BACK_TO_MENU_ROW = [{"text": "« Back to Menu", "callback_data": "nav:menu"}]
-
     @property
     def _base(self) -> str:
         return f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}"
 
-    async def _post_message(self, payload: dict) -> None:
+    async def _post_message(self, payload: dict, *, raise_on_error: bool = False) -> None:
         async with httpx.AsyncClient() as client:
             resp = await client.post(f"{self._base}/sendMessage", json=payload)
             if not resp.is_success:
@@ -26,10 +25,12 @@ class TelegramRepository(TelegramPort):
                     resp.text,
                     str(payload.get("text", ""))[:200],
                 )
+                if raise_on_error:
+                    resp.raise_for_status()
 
     def _with_back_to_menu(self, keyboard: list[list[dict]] | None = None) -> list[list[dict]]:
         rows = list(keyboard or [])
-        rows.append(self._BACK_TO_MENU_ROW)
+        rows.append(back_to_menu_row())
         return rows
 
     async def send_message(
@@ -241,7 +242,6 @@ class TelegramRepository(TelegramPort):
                             notion_button,
                         ],
                         [{"text": "📖 도움말", "callback_data": "menu:help"}],
-                        self._BACK_TO_MENU_ROW,
                     ]
                 },
             }
@@ -284,7 +284,7 @@ class TelegramRepository(TelegramPort):
         if link_id is not None:
             keyboard.append([{"text": "✅ 읽음 처리", "callback_data": f"mark_read:{link_id}"}])
         payload["reply_markup"] = {"inline_keyboard": self._with_back_to_menu(keyboard)}
-        await self._post_message(payload)
+        await self._post_message(payload, raise_on_error=True)
 
     async def register_commands(self) -> bool:
         commands = [
