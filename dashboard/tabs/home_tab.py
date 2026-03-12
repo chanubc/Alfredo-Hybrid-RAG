@@ -124,7 +124,7 @@ def _render_graph_view(graph: dict) -> None:
                     "line": {"width": 2, "color": color},
                     "opacity": 0.95,
                 },
-                hovertemplate=f"<b>{node['label']}</b><extra></extra>",
+                hovertemplate="<b>%{text}</b><extra></extra>",
                 name=node["label"],
                 showlegend=True,
             )

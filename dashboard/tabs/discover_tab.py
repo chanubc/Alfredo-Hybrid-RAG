@@ -1,5 +1,6 @@
 """🔍 탐색 탭 — 오늘의 추천글 + 스마트 검색 + 잊고 있던 글."""
 from datetime import datetime, timedelta, timezone
+from html import escape
 
 import streamlit as st
 
@@ -24,7 +25,8 @@ def render(client: DashboardAPIClient) -> None:
             st.error(f"로딩 실패: {e}")
             reactivation = {}
 
-    top3 = reactivation.get("items", [])[:3]
+    all_items = reactivation.get("items", [])
+    top3 = all_items[:3]
     if not top3:
         st.info("재활성화 후보가 없습니다. 링크를 더 저장하거나 3일 후에 다시 확인하세요.")
     else:
@@ -81,20 +83,13 @@ def render(client: DashboardAPIClient) -> None:
         st.session_state.pop("forgotten_data", None)
 
     if "forgotten_data" not in st.session_state:
-        with st.spinner("분석 중..."):
-            try:
-                data = cached_get_reactivation(jwt_token)
-                items = data.get("items", [])
-                cutoff = datetime.now(timezone.utc) - timedelta(days=14)
-                forgotten = [
-                    i for i in items
-                    if i.get("created_at") and
-                    i["created_at"][:10] <= cutoff.date().isoformat()
-                ]
-                st.session_state["forgotten_data"] = forgotten
-            except Exception as e:
-                st.error(f"로딩 실패: {e}")
-                return
+        cutoff = datetime.now(timezone.utc) - timedelta(days=14)
+        forgotten = [
+            i for i in all_items
+            if i.get("created_at") and
+            i["created_at"][:10] <= cutoff.date().isoformat()
+        ]
+        st.session_state["forgotten_data"] = forgotten
 
     forgotten = st.session_state.get("forgotten_data", [])
 
@@ -104,6 +99,15 @@ def render(client: DashboardAPIClient) -> None:
         st.caption(f"{len(forgotten)}개 발견")
         for item in forgotten[:10]:
             _render_forgotten_card(item)
+
+
+def _safe_link(title: str, url: str | None) -> str:
+    """URL scheme 검증 + title 마크다운 이스케이프 후 링크 반환."""
+    safe_title = escape(title).replace("[", "\\[").replace("]", "\\]")
+    if url and url.startswith(("http://", "https://")):
+        safe_url = url.replace(")", "%29").replace('"', "%22")
+        return f"**[{safe_title}]({safe_url})**"
+    return f"**{safe_title}**"
 
 
 def _render_recommendation_card(link: dict) -> None:
@@ -120,10 +124,7 @@ def _render_recommendation_card(link: dict) -> None:
         else:
             reason = "🕐 오랫동안 읽지 않은 글"
 
-        if url:
-            st.markdown(f"**[{title}]({url})**")
-        else:
-            st.markdown(f"**{title}**")
+        st.markdown(_safe_link(title, url))
         st.caption(f"{cat}  ·  {reason}")
         if summary:
             st.write(summary[:120] + ("..." if len(summary) > 120 else ""))
@@ -131,12 +132,7 @@ def _render_recommendation_card(link: dict) -> None:
 
 def _render_result_card(r: dict) -> None:
     with st.container(border=True):
-        url = r.get("url")
-        title = r.get("title", "제목 없음")
-        if url:
-            st.markdown(f"**[{title}]({url})**")
-        else:
-            st.markdown(f"**{title}**")
+        st.markdown(_safe_link(r.get("title", "제목 없음"), r.get("url")))
         st.caption(r.get("category", ""))
         chunk = r.get("chunk_content", "")
         if chunk:
@@ -145,12 +141,7 @@ def _render_result_card(r: dict) -> None:
 
 def _render_forgotten_card(item: dict) -> None:
     with st.container(border=True):
-        url = item.get("url")
-        title = item.get("title", "제목 없음")
-        if url:
-            st.markdown(f"**[{title}]({url})**")
-        else:
-            st.markdown(f"**{title}**")
+        st.markdown(_safe_link(item.get("title", "제목 없음"), item.get("url")))
         created = item.get("created_at", "")[:10]
         st.caption(f"{item.get('category', '')}  ·  저장일 {created}")
         summary = item.get("summary", "")

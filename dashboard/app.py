@@ -2,8 +2,9 @@
 
 구조:
 - layout="centered" (모바일 대응)
-- 사이드바: Advanced View 토글만
-- 탭: 🏠 홈 | 🔍 탐색 | 📈 트렌드 | 🗂 보관함 (단축 이름)
+- 다크 테마 (.streamlit/config.toml)
+- 사이드바 없음
+- 탭: 🏠 홈 | 📈 트렌드 | 🧠 인사이트 | 🔍 탐색
 """
 
 import os

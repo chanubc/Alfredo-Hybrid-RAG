@@ -10,7 +10,3 @@ CATEGORY_COLORS: dict[str, str] = {
     "Memo":     "#ec4899",
 }
 DEFAULT_COLOR = "#64748b"
-
-
-def get_color(category: str | None) -> str:
-    return CATEGORY_COLORS.get(category or "", DEFAULT_COLOR)
