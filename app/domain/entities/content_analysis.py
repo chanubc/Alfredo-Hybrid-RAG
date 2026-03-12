@@ -2,7 +2,11 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-CategoryType = Literal["AI", "Dev", "Career", "Business", "Science", "Other"]
+CategoryType = Literal[
+    "AI", "Dev", "Career", "Business", "Science",
+    "Design", "Health", "Productivity", "Education",
+    "Other",
+]
 
 
 class ContentAnalysis(BaseModel):
