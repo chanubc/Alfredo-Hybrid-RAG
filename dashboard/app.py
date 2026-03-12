@@ -26,7 +26,7 @@ st.set_page_config(
 from streamlit_cookies_controller import CookieController
 
 from dashboard.api_client import DashboardAPIClient
-from dashboard.tabs import discover_tab, home_tab, library_tab, trends_tab
+from dashboard.tabs import discover_tab, home_tab, insights_tab, trends_tab
 
 COOKIE_KEY = "linkdbot_dashboard_jwt"
 controller = CookieController()
@@ -74,28 +74,18 @@ if "telegram_id" not in st.session_state:
 client = DashboardAPIClient(jwt_token=st.session_state["jwt_token"])
 first_name: str = st.session_state.get("first_name") or ""
 
-# 사이드바: Advanced View 토글만
-with st.sidebar:
-    st.markdown(f"### 👋 {first_name}" if first_name else "### 📊 LinkdBot")
-    st.divider()
-    advanced = st.toggle(
-        "🔬 Advanced View", value=False, help="TVD, 점수 공식 등 기술 지표를 표시합니다"
-    )
-    st.divider()
-    st.caption("LinkdBot Knowledge Dashboard")
-
 st.title("📊 나의 지식 대시보드")
 
-tab1, tab2, tab3, tab4 = st.tabs(["🏠 홈", "🔍 탐색", "📈 트렌드", "🗂 보관함"])
+tab1, tab2, tab3, tab4 = st.tabs(["🏠 홈", "📈 트렌드", "🧠 인사이트", "🔍 탐색"])
 
 with tab1:
-    home_tab.render(client, advanced)
+    home_tab.render(client)
 
 with tab2:
-    discover_tab.render(client)
+    trends_tab.render()
 
 with tab3:
-    trends_tab.render(advanced)
+    insights_tab.render()
 
 with tab4:
-    library_tab.render(client)
+    discover_tab.render(client)
