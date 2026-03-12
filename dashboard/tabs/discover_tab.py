@@ -1,4 +1,6 @@
-"""🔍 탐색 탭 — 스마트 검색 + 잊고 있던 글."""
+"""🔍 탐색 탭 — 오늘의 추천글 + 스마트 검색 + 잊고 있던 글."""
+from datetime import datetime, timedelta, timezone
+
 import streamlit as st
 
 from dashboard.api_client import DashboardAPIClient, cached_get_reactivation
@@ -8,6 +10,29 @@ CATEGORIES = ["전체", "AI", "Dev", "Career", "Business", "Science", "Other"]
 
 
 def render(client: DashboardAPIClient) -> None:
+    jwt_token: str = st.session_state["jwt_token"]
+
+    # ── 오늘 읽으면 좋은 글 ───────────────────────────────────────
+    st.subheader("🔥 오늘 읽으면 좋은 글")
+    st.caption("최근 관심사 기반으로 오래 묵혀둔 글을 추천합니다")
+
+    with st.spinner("추천 로딩 중..."):
+        try:
+            reactivation = cached_get_reactivation(jwt_token)
+        except Exception as e:
+            logger.error(f"Reactivation load failed: {e}")
+            st.error(f"로딩 실패: {e}")
+            reactivation = {}
+
+    top3 = reactivation.get("items", [])[:3]
+    if not top3:
+        st.info("재활성화 후보가 없습니다. 링크를 더 저장하거나 3일 후에 다시 확인하세요.")
+    else:
+        for link in top3:
+            _render_recommendation_card(link)
+
+    st.divider()
+
     # ── 스마트 검색 ───────────────────────────────────────────────
     st.subheader("🔍 스마트 검색")
     st.caption("저장한 링크를 의미 기반으로 검색합니다")
@@ -58,10 +83,8 @@ def render(client: DashboardAPIClient) -> None:
     if "forgotten_data" not in st.session_state:
         with st.spinner("분석 중..."):
             try:
-                data = cached_get_reactivation(st.session_state["jwt_token"])
-                # 14일 이상만 필터
+                data = cached_get_reactivation(jwt_token)
                 items = data.get("items", [])
-                from datetime import datetime, timezone, timedelta
                 cutoff = datetime.now(timezone.utc) - timedelta(days=14)
                 forgotten = [
                     i for i in items
@@ -83,32 +106,53 @@ def render(client: DashboardAPIClient) -> None:
             _render_forgotten_card(item)
 
 
+def _render_recommendation_card(link: dict) -> None:
+    with st.container(border=True):
+        url = link.get("url")
+        title = link.get("title", "제목 없음")
+        cat = link.get("category", "")
+        summary = link.get("summary", "")
+        similarity = link.get("similarity", 0)
+        recency = link.get("recency", 0)
+
+        if similarity * 0.6 >= recency * 0.4:
+            reason = "✨ 최근 관심사와 유사한 글"
+        else:
+            reason = "🕐 오랫동안 읽지 않은 글"
+
+        if url:
+            st.markdown(f"**[{title}]({url})**")
+        else:
+            st.markdown(f"**{title}**")
+        st.caption(f"{cat}  ·  {reason}")
+        if summary:
+            st.write(summary[:120] + ("..." if len(summary) > 120 else ""))
+
+
 def _render_result_card(r: dict) -> None:
     with st.container(border=True):
-        st.markdown(f"**{r.get('title', '제목 없음')}**")
-        col1, col2 = st.columns([0.8, 0.2])
-        with col1:
-            st.caption(r.get("category", ""))
-            chunk = r.get("chunk_content", "")
-            if chunk:
-                st.write(chunk[:150] + ("..." if len(chunk) > 150 else ""))
-        with col2:
-            url = r.get("url")
-            if url:
-                st.link_button("🔗 열기", url, use_container_width=True)
+        url = r.get("url")
+        title = r.get("title", "제목 없음")
+        if url:
+            st.markdown(f"**[{title}]({url})**")
+        else:
+            st.markdown(f"**{title}**")
+        st.caption(r.get("category", ""))
+        chunk = r.get("chunk_content", "")
+        if chunk:
+            st.write(chunk[:150] + ("..." if len(chunk) > 150 else ""))
 
 
 def _render_forgotten_card(item: dict) -> None:
     with st.container(border=True):
-        st.markdown(f"**{item.get('title', '제목 없음')}**")
-        col1, col2 = st.columns([0.8, 0.2])
-        with col1:
-            created = item.get("created_at", "")[:10]
-            st.caption(f"{item.get('category', '')}  ·  저장일 {created}")
-            summary = item.get("summary", "")
-            if summary:
-                st.write(summary[:120] + ("..." if len(summary) > 120 else ""))
-        with col2:
-            url = item.get("url")
-            if url:
-                st.link_button("🔗 열기", url, use_container_width=True)
+        url = item.get("url")
+        title = item.get("title", "제목 없음")
+        if url:
+            st.markdown(f"**[{title}]({url})**")
+        else:
+            st.markdown(f"**{title}**")
+        created = item.get("created_at", "")[:10]
+        st.caption(f"{item.get('category', '')}  ·  저장일 {created}")
+        summary = item.get("summary", "")
+        if summary:
+            st.write(summary[:120] + ("..." if len(summary) > 120 else ""))
