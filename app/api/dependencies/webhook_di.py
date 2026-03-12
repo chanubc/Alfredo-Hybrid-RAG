@@ -27,7 +27,6 @@ from app.application.usecases.save_link_usecase import SaveLinkUseCase
 from app.application.usecases.save_memo_usecase import SaveMemoUseCase
 from app.application.usecases.search_usecase import SearchUseCase
 from app.domain.repositories.i_user_repository import IUserRepository
-from app.infrastructure.repository.user_repository import UserRepository
 
 
 def get_message_router(
@@ -38,7 +37,7 @@ def get_message_router(
     recall_memo_uc: RecallMemoUseCase = Depends(get_recall_memo_usecase),
     weekly_report_uc: GenerateWeeklyReportUseCase = Depends(get_weekly_report_usecase),
     telegram: TelegramPort = Depends(get_telegram_client),
-    user_repo: UserRepository = Depends(get_user_repository),
+    user_repo: IUserRepository = Depends(get_user_repository),
     auth_service: AuthService = Depends(get_auth_service),
 ) -> MessageRouterService:
     return MessageRouterService(
