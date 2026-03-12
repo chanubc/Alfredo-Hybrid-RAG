@@ -46,10 +46,26 @@ git checkout -b prefix/#N-{설명}
 이제 작업을 시작하세요.
 ```
 
-## 6. 작업 완료 후 PR 생성 (작업 완료 시 별도 실행)
+## 6. 작업 완료 후 커밋하기
+하나의 기능 작업이 완료되면 다음 형식으로 커밋하세요.
+
+```bash
+git add {변경된 파일}
+git commit -m "#N [prefix]: 커밋 메시지"
+```
+
+**커밋 메시지 형식:**
+- `#N [feat]: 새로운 기능 설명` (새 기능)
+- `#N [fix]: 버그 수정 설명` (버그 수정)
+- `#N [refactor]: 코드 개선 설명` (리팩토링)
+- `#N [add]: 파일 추가 설명` (파일 추가)
+
+**주의:** Co-Authored-By 라인은 추가하지 마세요.
+
+## 7. 작업 완료 후 PR 생성 (작업 완료 시 별도 실행)
 `.github/PULL_REQUEST_TEMPLATE.md` 형식에 맞춰 PR을 생성하세요.
 
-## 7. PR 머지
+## 8. PR 머지
 GitHub UI에서 "Create a merge commit" 선택 후 병합. 또는 CLI:
 
 ```bash
