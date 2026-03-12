@@ -76,6 +76,29 @@ async def test_handle_plain_message_schedules_router_without_nested_background_a
 
 
 @pytest.mark.asyncio
+async def test_handle_heavy_slash_command_sends_immediate_feedback(
+    webhook_handler, webhook_dependencies, background_tasks
+):
+    data = {
+        "message": {
+            "text": "/ask RAG가 뭐야?",
+            "from": {"id": 123, "first_name": "Chanu"},
+            "chat": {"id": 123},
+        }
+    }
+
+    await webhook_handler.handle(data, background_tasks)
+
+    webhook_dependencies["telegram"].send_message.assert_awaited_once()
+    assert "요청을 받았어요" in webhook_dependencies["telegram"].send_message.await_args.args[1]
+    background_tasks.add_task.assert_called_once_with(
+        webhook_dependencies["message_router"].route,
+        123,
+        "/ask RAG가 뭐야?",
+    )
+
+
+@pytest.mark.asyncio
 async def test_help_callback_routes_to_telegram_help(webhook_handler, webhook_dependencies, background_tasks):
     callback = {"id": "callback-1", "data": "help", "from": {"id": 123}}
 
@@ -115,6 +138,8 @@ async def test_menu_report_callback_routes_to_report_command(
 
     await webhook_handler._handle_callback(callback, background_tasks)
 
+    webhook_dependencies["telegram"].send_message.assert_awaited_once()
+    assert "요청을 받았어요" in webhook_dependencies["telegram"].send_message.await_args.args[1]
     background_tasks.add_task.assert_called_once_with(webhook_dependencies["message_router"].route, 123, "/report")
 
 

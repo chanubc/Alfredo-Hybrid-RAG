@@ -34,6 +34,15 @@ class TelegramWebhookHandler:
     def _back_to_menu_markup() -> dict:
         return {"inline_keyboard": [[{"text": "« Back to Menu", "callback_data": "nav:menu"}]]}
 
+    @staticmethod
+    def _requires_immediate_feedback(text: str) -> bool:
+        if not text:
+            return False
+        if not text.startswith("/"):
+            return True
+        command = text.split(maxsplit=1)[0]
+        return command in {"/ask", "/search", "/report", "/memo"}
+
     async def handle(self, data: dict, background_tasks: BackgroundTasks) -> None:
         if callback := data.get("callback_query"):
             await self._handle_callback(callback, background_tasks)
@@ -65,7 +74,7 @@ class TelegramWebhookHandler:
                 background_tasks.add_task(self._save_link_uc.execute, telegram_id, url, memo)
             return
 
-        if not text.startswith("/"):
+        if self._requires_immediate_feedback(text):
             await self._telegram.send_message(
                 telegram_id,
                 "🤔 요청을 받았어요. 분석을 시작할게요...",
@@ -104,6 +113,10 @@ class TelegramWebhookHandler:
                 reply_markup=self._back_to_menu_markup(),
             )
         elif data == "menu:report":
+            await self._telegram.send_message(
+                chat_id,
+                "🤔 요청을 받았어요. 분석을 시작할게요...",
+            )
             background_tasks.add_task(self._message_router.route, chat_id, "/report")
         elif data == "nav:menu":
             background_tasks.add_task(self._message_router.route, chat_id, "/menu")
