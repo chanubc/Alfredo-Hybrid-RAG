@@ -125,3 +125,38 @@ class ChunkRepository(IChunkRepository):
             )
 
         return [dict(row) for row in result.mappings()]
+
+    async def search_og_links(
+        self,
+        user_id: int,
+        query_embedding: list[float],
+        top_k: int = 5,
+    ) -> list[dict]:
+        """chunks가 없는 OG 링크를 summary_embedding 기반으로 검색."""
+        emb_str = "[" + ",".join(str(v) for v in query_embedding) + "]"
+        sql = text("""
+            SELECT
+                l.id            AS link_id,
+                l.title,
+                l.url,
+                l.summary,
+                l.category,
+                l.keywords,
+                l.content_source,
+                ''              AS chunk_content,
+                1 - (l.summary_embedding <=> CAST(:emb AS vector)) AS dense_score,
+                1 - (l.summary_embedding <=> CAST(:emb AS vector)) AS similarity
+            FROM links l
+            WHERE l.user_id = :user_id
+              AND l.summary_embedding IS NOT NULL
+              AND NOT EXISTS (
+                  SELECT 1 FROM chunks c WHERE c.link_id = l.id
+              )
+            ORDER BY l.summary_embedding <=> CAST(:emb AS vector)
+            LIMIT :top_k
+        """)
+        result = await self._db.execute(
+            sql,
+            {"emb": emb_str, "user_id": user_id, "top_k": top_k},
+        )
+        return [dict(row) for row in result.mappings()]

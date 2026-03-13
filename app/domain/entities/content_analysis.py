@@ -11,6 +11,7 @@ CategoryType = Literal[
 
 class ContentAnalysis(BaseModel):
     title: str
-    summary: str
+    semantic_summary: str       # 임베딩/DB용 (4~6문장, 고유명사/맥락 보존)
+    display_points: list[str]   # 사용자 표시용 짧은 bullet (3~5개)
     category: CategoryType
     keywords: list[str]
