@@ -8,6 +8,7 @@ def make_retriever():
     openai = AsyncMock()
     openai.embed.return_value = [[0.1] * 5]
     chunk_repo = AsyncMock()
+    chunk_repo.search_og_links.return_value = []
     return HybridRetriever(openai=openai, chunk_repo=chunk_repo), chunk_repo
 
 

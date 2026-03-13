@@ -1,4 +1,3 @@
-import asyncio
 import json
 
 from app.domain.repositories.i_chunk_repository import IChunkRepository
@@ -31,10 +30,8 @@ class HybridRetriever:
         """
         [embedding] = await self._openai.embed([query])
         recall_k = min(max(top_k * _RECALL_MULTIPLIER, _MIN_RECALL_K), _MAX_RECALL_K)
-        chunk_results, og_results = await asyncio.gather(
-            self._chunk_repo.search_similar(user_id, embedding, recall_k, query_text=query),
-            self._chunk_repo.search_og_links(user_id, embedding, recall_k),
-        )
+        chunk_results = await self._chunk_repo.search_similar(user_id, embedding, recall_k, query_text=query)
+        og_results = await self._chunk_repo.search_og_links(user_id, embedding, recall_k)
         merged = _merge_results(chunk_results, og_results)
         rescored = _rescore_with_keywords(merged, query)
         deduped = _dedupe_by_link(rescored)
