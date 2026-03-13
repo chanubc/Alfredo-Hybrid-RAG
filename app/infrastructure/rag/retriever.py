@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 from app.domain.repositories.i_chunk_repository import IChunkRepository
@@ -24,15 +25,27 @@ class HybridRetriever:
     async def retrieve(self, user_id: int, query: str, top_k: int = 10) -> list[dict]:
         """Dense + LLM Keyword Overlap 하이브리드 검색.
 
+        chunk 경로(search_similar) + OG summary_embedding 경로(search_og_links)를 병합.
         DB는 recall_k로 넓게 조회 후 keyword rescoring → link_id dedupe
         → score cutoff → 최종 top_k 반환.
         """
         [embedding] = await self._openai.embed([query])
         recall_k = min(max(top_k * _RECALL_MULTIPLIER, _MIN_RECALL_K), _MAX_RECALL_K)
-        results = await self._chunk_repo.search_similar(user_id, embedding, recall_k, query_text=query)
-        rescored = _rescore_with_keywords(results, query)
+        chunk_results, og_results = await asyncio.gather(
+            self._chunk_repo.search_similar(user_id, embedding, recall_k, query_text=query),
+            self._chunk_repo.search_og_links(user_id, embedding, recall_k),
+        )
+        merged = _merge_results(chunk_results, og_results)
+        rescored = _rescore_with_keywords(merged, query)
         deduped = _dedupe_by_link(rescored)
         return _apply_score_cutoff(deduped)[:top_k]
+
+
+def _merge_results(chunk_results: list[dict], og_results: list[dict]) -> list[dict]:
+    """chunk 경로와 OG summary_embedding 경로 결과를 병합. link_id 기준 chunk 경로 우선."""
+    seen: set[int] = {r["link_id"] for r in chunk_results if r.get("link_id") is not None}
+    extra = [r for r in og_results if r.get("link_id") not in seen]
+    return chunk_results + extra
 
 
 def _build_query_variants(query: str) -> list[str]:

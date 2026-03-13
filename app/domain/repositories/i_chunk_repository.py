@@ -17,3 +17,11 @@ class IChunkRepository(ABC):
         top_k: int = 5,
         query_text: str = "",
     ) -> list[dict]: ...
+
+    @abstractmethod
+    async def search_og_links(
+        self,
+        user_id: int,
+        query_embedding: list[float],
+        top_k: int = 5,
+    ) -> list[dict]: ...

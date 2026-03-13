@@ -240,3 +240,57 @@ async def test_low_dense_rank_rises_via_keyword_overlap():
     # B: 0.80 * 0.7 + 0.0  * 0.3  = 0.56
     assert results[0]["link_id"] == 1
     assert len(results) == 1
+
+
+@pytest.mark.asyncio
+async def test_og_link_without_chunks_appears_via_summary_embedding():
+    """chunks가 없는 OG 링크가 summary_embedding 경로로 검색 결과에 포함되어야 한다."""
+    retriever, chunk_repo = make_retriever()
+
+    # chunk 경로: Jina 링크만 반환
+    chunk_repo.search_similar.return_value = [
+        _make_result(1, "Jina 링크", ["AI", "Python"], dense_score=0.8, content_source="jina"),
+    ]
+    # summary_embedding 경로: OG 링크 반환 (chunks 없는 링크)
+    chunk_repo.search_og_links.return_value = [
+        _make_result(2, "OG 링크", ["Career", "채용"], dense_score=0.7, content_source="og"),
+    ]
+
+    results = await retriever.retrieve(user_id=111, query="AI 채용", top_k=5)
+
+    link_ids = [r["link_id"] for r in results]
+    assert 1 in link_ids, "Jina 링크(chunk 경로)가 결과에 포함되어야 함"
+    assert 2 in link_ids, "OG 링크(summary_embedding 경로)가 결과에 포함되어야 함"
+
+
+@pytest.mark.asyncio
+async def test_og_link_deduped_when_also_in_chunks():
+    """OG 링크가 두 경로 모두에서 반환될 경우 중복 제거 후 1개만 남아야 한다."""
+    retriever, chunk_repo = make_retriever()
+
+    chunk_repo.search_similar.return_value = [
+        _make_result(1, "링크", ["AI"], dense_score=0.8, content_source="og"),
+    ]
+    chunk_repo.search_og_links.return_value = [
+        _make_result(1, "링크", ["AI"], dense_score=0.75, content_source="og"),
+    ]
+
+    results = await retriever.retrieve(user_id=111, query="AI", top_k=5)
+
+    assert [r["link_id"] for r in results].count(1) == 1, "같은 link_id는 1개만 나와야 함"
+
+
+@pytest.mark.asyncio
+async def test_og_links_empty_when_no_summary_embeddings():
+    """search_og_links가 빈 결과를 반환해도 chunk 결과는 정상 반환되어야 한다."""
+    retriever, chunk_repo = make_retriever()
+
+    chunk_repo.search_similar.return_value = [
+        _make_result(1, "Jina 링크", ["AI"], dense_score=0.8),
+    ]
+    chunk_repo.search_og_links.return_value = []
+
+    results = await retriever.retrieve(user_id=111, query="AI", top_k=5)
+
+    assert len(results) == 1
+    assert results[0]["link_id"] == 1
