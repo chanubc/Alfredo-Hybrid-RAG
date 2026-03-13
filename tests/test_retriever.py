@@ -12,13 +12,13 @@ def make_retriever():
     return HybridRetriever(openai=openai, chunk_repo=chunk_repo), chunk_repo
 
 
-def _make_result(link_id, title, keywords, dense_score, content_source="jina"):
+def _make_result(link_id, title, keywords, dense_score, content_source="jina", similarity=None):
     return {
         "link_id": link_id,
         "title": title,
         "keywords": json.dumps(keywords),
         "dense_score": dense_score,
-        "similarity": dense_score,
+        "similarity": dense_score * 0.7 if similarity is None else similarity,
         "content_source": content_source,
         "url": f"https://example.com/{link_id}",
         "summary": "",
@@ -46,7 +46,14 @@ async def test_og_source_has_lower_keyword_weight():
     """content_source='og'인 경우 keyword_weight가 0.1로 낮아야 한다."""
     retriever, chunk_repo = make_retriever()
     chunk_repo.search_similar.return_value = [
-        _make_result(1, "테스트", ["하나증권", "채용"], dense_score=0.5, content_source="og"),
+        _make_result(
+            1,
+            "테스트",
+            ["하나증권", "채용"],
+            dense_score=0.5,
+            content_source="og",
+            similarity=0.5,
+        ),
     ]
 
     results = await retriever.retrieve(user_id=111, query="하나증권 채용", top_k=5)
@@ -60,7 +67,14 @@ async def test_jina_source_has_higher_keyword_weight():
     """content_source='jina'인 경우 keyword_weight가 0.3이어야 한다."""
     retriever, chunk_repo = make_retriever()
     chunk_repo.search_similar.return_value = [
-        _make_result(1, "테스트", ["하나증권", "채용"], dense_score=0.5, content_source="jina"),
+        _make_result(
+            1,
+            "테스트",
+            ["하나증권", "채용"],
+            dense_score=0.5,
+            content_source="jina",
+            similarity=0.5,
+        ),
     ]
 
     results = await retriever.retrieve(user_id=111, query="하나증권 채용", top_k=5)
@@ -145,9 +159,9 @@ async def test_same_link_deduped():
     """같은 link_id의 여러 chunk가 결과에 1개만 남아야 한다."""
     retriever, chunk_repo = make_retriever()
     chunk_repo.search_similar.return_value = [
-        _make_result(1, "하나증권 공고", ["하나증권", "채용공고"], dense_score=0.80),
-        _make_result(1, "하나증권 공고", ["하나증권", "채용공고"], dense_score=0.75),
-        _make_result(2, "파이썬 로깅", ["Python", "로깅"], dense_score=0.80),
+        _make_result(1, "하나증권 공고", ["하나증권", "채용공고"], dense_score=0.80, similarity=0.80),
+        _make_result(1, "하나증권 공고", ["하나증권", "채용공고"], dense_score=0.75, similarity=0.75),
+        _make_result(2, "파이썬 로깅", ["Python", "로깅"], dense_score=0.80, similarity=0.80),
     ]
 
     results = await retriever.retrieve(user_id=111, query="하나증권", top_k=5)

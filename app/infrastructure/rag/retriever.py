@@ -83,7 +83,7 @@ def _token_matches(query_token: str, keyword: str) -> bool:
 
 
 def _rescore_with_keywords(results: list[dict], query: str) -> list[dict]:
-    """dense_score + keyword overlap으로 final_score 재산출 후 내림차순 정렬.
+    """DB similarity(base) + keyword/title overlap으로 final_score 재산출 후 내림차순 정렬.
 
     query 변형(원문/공백제거/bi-gram)별 overlap 중 최댓값을 사용.
     """
@@ -96,7 +96,6 @@ def _rescore_with_keywords(results: list[dict], query: str) -> list[dict]:
 
     rescored = []
     for r in results:
-        dense_score = r.get("dense_score", r.get("similarity", 0))
         keyword_weight = (
             _KEYWORD_WEIGHT_JINA if r.get("content_source") == "jina"
             else _KEYWORD_WEIGHT_OG
