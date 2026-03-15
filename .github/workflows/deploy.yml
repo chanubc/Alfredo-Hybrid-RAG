@@ -35,4 +35,3 @@ jobs:
             git checkout -B main origin/main
             docker image prune -f
             docker compose up -d --build
-            docker compose exec -T app alembic upgrade head
