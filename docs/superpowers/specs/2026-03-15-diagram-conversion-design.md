@@ -24,20 +24,20 @@ Replace static SVG architecture diagrams with Mermaid diagrams using `look: "han
 
 ## Design Decisions
 
-### 1. **Format: Mermaid with Handdrawn Theme**
+### 1. **Format: draw.io with Sketch Theme**
 
-**Choice:** Mermaid with `look: "handDrawn"` + `theme: "base"`
+**Choice:** draw.io (XML format) + SVG export + Sketch style
 
 **Reasoning:**
-- GitHub-native rendering (no external tools)
-- Sketch theme makes diagrams feel informal/approachable
-- Git diff-friendly (plain text, not binary SVG)
-- Easy to maintain and iterate
+- **Precise layout control** — SearchUseCase and PostgreSQL can be perfectly centered
+- **Sketch theme** — draw.io sketch style matches handdrawn aesthetic
+- **SVG export** — for embedding in README (vector, not raster)
+- **Source control** — store `.drawio` XML files in git for version history
+- **Editability** — easy to edit with draw.io app, VSCode extension, or web editor
 
-**Init Directive:**
-```mermaid
-%%{init: {"theme": "base", "look": "handDrawn", "themeVariables": {"fontFamily": "Comic Sans MS"}}}%%
-```
+**Files:**
+- `docs/assets/system-flow.drawio` — source XML
+- `docs/assets/system-flow.svg` — exported for README embedding
 
 ---
 
@@ -62,9 +62,29 @@ Replace static SVG architecture diagrams with Mermaid diagrams using `look: "han
 
 ---
 
-### 4. **system-flow.md — Pipeline with Layer Colors**
+### 4. **system-flow.drawio — Pipeline with Layer Colors & Perfect Centering**
 
-**Diagram Type:** `flowchart TD` (vertical, top-down)
+**Diagram Structure:**
+
+```
+        👤 Telegram User
+              ↓
+        📱 Telegram API
+              ↓
+        🔗 POST /webhook
+              ↓
+    WebhookHandler + TelegramWebhookHandler
+              ↓
+     MessageRouter + IntentClassifier
+          ↙  ↓  ↘
+   SaveLink Search  Knowledge
+   UseCase UseCase  Agent
+   (Left)  (Center) (Right)
+          ↙  ↓  ↘
+      🗄️ PostgreSQL (Center)
+           ↓
+    💬 Telegram Response
+```
 
 **Layers & Colors:**
 | Layer | Color | Components |
@@ -74,47 +94,46 @@ Replace static SVG architecture diagrams with Mermaid diagrams using `look: "han
 | **Storage** (Orange) | `#fed7aa` | PostgreSQL + pgvector |
 | **External** (Purple) | `#f3e8ff` | Jina Reader, OpenAI API |
 
-**Key Elements:**
-- **SaveLinkUseCase** → Jina Reader (dashed edge)
-- **SearchUseCase** → Enhanced with **HybridRetriever** label breakdown: "Dense · Sparse · Rerank" (shows full RAG pipeline)
-- **KnowledgeAgent** → OpenAI API (dashed edge)
-- All converge to **PostgreSQL** → single **Telegram Response** output
+**Key Design Features:**
+- **3-way branching from MessageRouter** → SaveLinkUseCase (left), SearchUseCase (center), KnowledgeAgent (right)
+- **SearchUseCase centered** with HybridRetriever breakdown: "Dense · Sparse · Rerank"
+- **PostgreSQL centered** — convergence point
+- **Dashed edges** — external service calls (Jina Reader, OpenAI API)
+- **Sketch style** — handdrawn aesthetic with rounded corners
 
-**Mermaid Code:**
-```mermaid
-%%{init: {"theme": "base", "look": "handDrawn", "themeVariables": {"fontFamily": "Comic Sans MS"}}}%%
-flowchart TD
-    classDef input fill:#dbeafe,stroke:#0284c7,color:#1e3a8a
-    classDef process fill:#dcfce7,stroke:#22c55e,color:#14532d
-    classDef storage fill:#fed7aa,stroke:#f97316,color:#7c2d12
-    classDef external fill:#f3e8ff,stroke:#a855f7,color:#581c87
-
-    A[👤 Telegram User]:::input
-    B[📱 Telegram API]:::input
-    C[🔗 POST /webhook]:::input
-    D[WebhookHandler<br/>+ TelegramWebhookHandler]:::process
-    E[MessageRouter<br/>+ IntentClassifier]:::process
-    F[SaveLinkUseCase<br/>+ Scraper + OpenAI]:::process
-    G["SearchUseCase<br/>+ HybridRetriever<br/>(Dense·Sparse·Rerank)"]:::process
-    H[KnowledgeAgent<br/>+ Function Calling]:::process
-    I[(🗄️ PostgreSQL<br/>+ pgvector)]:::storage
-    J[🧪 Jina Reader<br/>Scraper]:::external
-    K[🤖 OpenAI API<br/>Embed + Analyze]:::external
-    L[💬 Telegram Response]:::input
-
-    A --> B --> C --> D --> E
-    E --> F & G & H
-    F & G & H --> I
-    I --> L
-    F -.-> J
-    H -.-> K
-```
+**Implementation:**
+1. Use draw.io app/VSCode extension to create `system-flow.drawio`
+2. Manual layout ensures perfect centering (SearchUseCase and PostgreSQL aligned vertically)
+3. Apply sketch style in draw.io settings
+4. Export to `system-flow.svg` (File → Export As → SVG)
 
 ---
 
-### 5. **clean-architecture.md — Layers with Subgraph**
+### 5. **clean-architecture.drawio — Concentric Layers (Original Design)**
 
-**Diagram Type:** `flowchart TD` + `subgraph` (not pure vertical due to diamond dependency shape, but subgraphs clarify layer structure)
+**Diagram Structure:**
+
+Restore the original concentric circles design using draw.io's shape grouping/nesting:
+
+```
+     ┌─────────────────────────────────┐
+     │ 📱 Presentation (Red)           │
+     │ ┌───────────────────────────┐   │
+     │ │ ⚙️ Application (Green)    │   │
+     │ │ ┌───────────────────────┐ │   │
+     │ │ │ 🧩 Domain (Blue)      │ │   │
+     │ │ │ Pure Logic · Entities │ │   │
+     │ │ └───────────────────────┘ │   │
+     │ │ Ports / Interfaces        │   │
+     │ └───────────────────────────┘   │
+     │ UseCases · Services             │
+     └─────────────────────────────────┘
+      FastAPI Routers · DI
+
+     🔧 Infrastructure (Orange)
+     SQLAlchemy · LLM Clients
+     ↑ implements ↑
+```
 
 **Layers & Colors:**
 | Layer | Color | Responsibility |
@@ -126,77 +145,69 @@ flowchart TD
 
 **Dependency Flow:**
 ```
-Presentation → Application → Domain
-                              ↑
-                        Infrastructure (implements)
+Presentation → Application → Domain ← Infrastructure (implements)
 ```
 
-**Mermaid Code:**
-```mermaid
-%%{init: {"theme": "base", "look": "handDrawn", "themeVariables": {"fontFamily": "Comic Sans MS"}}}%%
-flowchart TD
-    subgraph PRES ["📱 Presentation"]
-        P["FastAPI Routers · DI<br/>HTTP Endpoints"]
-    end
-    subgraph APP ["⚙️ Application"]
-        A["UseCases · Services<br/>Ports / Interfaces"]
-    end
-    subgraph DOM ["🧩 Domain"]
-        D["Pure Logic · Entities<br/>Repository Interfaces"]
-    end
-    subgraph INFRA ["🔧 Infrastructure"]
-        I["SQLAlchemy · LLM Clients<br/>RAG Pipeline · Adapters"]
-    end
-
-    PRES -->|depends| APP
-    APP -->|depends| DOM
-    INFRA -->|implements| DOM
-
-    style PRES fill:#fecaca,stroke:#ef4444,color:#7f1d1d
-    style APP fill:#bbf7d0,stroke:#22c55e,color:#14532d
-    style DOM fill:#bfdbfe,stroke:#3b82f6,color:#1e3a8a
-    style INFRA fill:#fed7aa,stroke:#f97316,color:#7c2d12
-```
+**Implementation:**
+1. Use draw.io app to create `clean-architecture.drawio`
+2. Use concentric rectangles (nested shapes) to visualize layers
+3. Add dependency arrows with labels ("depends", "implements")
+4. Apply sketch style in draw.io settings
+5. Export to `clean-architecture.svg` (File → Export As → SVG)
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: Create Markdown Files
+### Phase 1: Create draw.io Diagrams
 
-1. Create `docs/assets/system-flow.md`
-   - Paste Mermaid code from design above
-   - Add title: `# System Flow (Message Processing Pipeline)`
-   - Add intro paragraph explaining the flow
-2. Create `docs/assets/clean-architecture.md`
-   - Paste Mermaid code from design above
-   - Add title: `# Clean Architecture (Layer Dependencies)`
-   - Add layer descriptions
+#### 1a. system-flow.drawio
+1. Open [draw.io](https://draw.io) or VSCode draw.io extension
+2. Create new diagram
+3. Build structure:
+   - **Input layer (Blue):** Telegram User → API → Webhook
+   - **Process layer (Green):** WebhookHandler → MessageRouter → [SaveLink (left), Search (center), KnowledgeAgent (right)]
+   - **Storage layer (Orange):** PostgreSQL + pgvector (centered below)
+   - **External layer (Purple):** Jina Reader, OpenAI API (dashed edges)
+4. **Critical:** Ensure SearchUseCase and PostgreSQL are **vertically centered**
+5. Apply sketch style: Right-click canvas → Sketch style
+6. Save as `docs/assets/system-flow.drawio`
+7. Export: File → Export As → SVG → `docs/assets/system-flow.svg`
+
+#### 1b. clean-architecture.drawio
+1. Create new diagram in draw.io
+2. Build concentric structure using nested rectangles:
+   - Outermost: Presentation (Red) rectangle
+   - Inside: Application (Green) rectangle
+   - Inside: Domain (Blue) rectangle
+   - Separate: Infrastructure (Orange) rectangle with arrow to Domain
+3. Add layer labels and responsibilities
+4. Add dependency arrows with labels ("depends", "implements")
+5. Apply sketch style
+6. Save as `docs/assets/clean-architecture.drawio`
+7. Export: File → Export As → SVG → `docs/assets/clean-architecture.svg`
 
 ### Phase 2: Update README.md
 
-- Replace SVG image references:
+- Keep SVG image references (draw.io exports to SVG)
   ```markdown
-  <!-- Old -->
   ![System Flow Diagram](docs/assets/system-flow.svg)
   ![Architecture Diagram](docs/assets/clean-architecture.svg)
-
-  <!-- New -->
-  [System Flow Diagram](docs/assets/system-flow.md)
-  [Architecture Diagram](docs/assets/clean-architecture.md)
   ```
 
 ### Phase 3: Cleanup
 
-- Delete `docs/assets/system-flow.svg`
-- Delete `docs/assets/clean-architecture.svg`
-- Delete `docs/assets/archi-flow.xml`
+- Delete `docs/assets/archi-flow.xml` (old duplicate)
+- Keep `.drawio` and `.svg` files in repo
 
 ### Phase 4: Verification
 
-- Open README in browser to verify Mermaid rendering
-- Test on GitHub (should auto-render in Markdown preview)
-- Verify links navigate to `.md` files correctly
+- [ ] system-flow.svg renders in GitHub preview
+- [ ] clean-architecture.svg renders in GitHub preview
+- [ ] SearchUseCase and PostgreSQL are visually centered
+- [ ] All colors match design specification
+- [ ] Sketch style is applied (handdrawn aesthetic)
+- [ ] All labels readable and positioned correctly
 
 ---
 
@@ -235,13 +246,13 @@ flowchart TD
 ## Files Affected
 
 **Created:**
-- `docs/assets/system-flow.md`
-- `docs/assets/clean-architecture.md`
+- `docs/assets/system-flow.drawio` — source (XML format)
+- `docs/assets/system-flow.svg` — exported (vector format)
+- `docs/assets/clean-architecture.drawio` — source (XML format)
+- `docs/assets/clean-architecture.svg` — exported (vector format)
 
 **Modified:**
-- `README.md` (diagram references)
+- `README.md` — no changes needed (SVG references remain)
 
 **Deleted:**
-- `docs/assets/system-flow.svg`
-- `docs/assets/clean-architecture.svg`
-- `docs/assets/archi-flow.xml`
+- `docs/assets/archi-flow.xml` (old duplicate)
