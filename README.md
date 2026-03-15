@@ -58,7 +58,7 @@ The system processes messages in a multi-stage pipeline:
    - **Knowledge Agent** → Function calling with tools (search KB, get unread links)
 5. **Response** → Send results back to Telegram user
 
-![System Flow Diagram](docs/assets/system-flow.svg)
+[System Flow Diagram](docs/assets/system-flow.md)
 
 ---
 
@@ -81,7 +81,7 @@ LinkdBot-RAG uses **Pragmatic Clean Architecture** with dependency inversion:
 - **Infrastructure**: Repository implementations, LLM clients, external API adapters
 - **Presentation**: FastAPI routers that depend only on Application layer via dependency injection
 
-![Architecture Diagram](docs/assets/clean-architecture.svg)
+[Architecture Diagram](docs/assets/clean-architecture.md)
 
 ---
 
