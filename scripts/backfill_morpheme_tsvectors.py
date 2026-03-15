@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import sqlalchemy as sa
 from dotenv import load_dotenv
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.infrastructure.rag.korean_utils import morpheme_tokenize
@@ -35,55 +36,56 @@ async def main() -> None:
     if not database_url:
         raise RuntimeError("DATABASE_URL environment variable is not set")
 
-    # Ensure asyncpg dialect
-    if not database_url.startswith("postgresql+asyncpg://"):
-        database_url = database_url.replace("postgresql://", "postgresql+asyncpg://")
+    # Force asyncpg dialect regardless of URL form (postgresql://, postgres://, etc.)
+    url = make_url(database_url).set(drivername="postgresql+asyncpg")
 
-    engine = create_async_engine(database_url)
+    engine = create_async_engine(url)
 
-    async with engine.connect() as conn:
-        result = await conn.execute(sa.text("SELECT COUNT(*) FROM chunks"))
-        total = result.scalar() or 0
-        if total == 0:
-            print("No chunks to backfill.")
-            return
+    try:
+        async with engine.connect() as conn:
+            result = await conn.execute(sa.text("SELECT COUNT(*) FROM chunks"))
+            total = result.scalar() or 0
+            if total == 0:
+                print("No chunks to backfill.")
+                return
 
-        print(f"Backfilling {total} chunks...")
-        last_id = 0
-        updated = 0
+            print(f"Backfilling {total} chunks...")
+            last_id = 0
+            updated = 0
 
-        while True:
-            rows = (
+            while True:
+                rows = (
+                    await conn.execute(
+                        sa.text(
+                            "SELECT id, content FROM chunks "
+                            "WHERE id > :last_id ORDER BY id LIMIT :lim"
+                        ),
+                        {"last_id": last_id, "lim": _BATCH_SIZE},
+                    )
+                ).fetchall()
+
+                if not rows:
+                    break
+
+                params = [
+                    {"mc": morpheme_tokenize(row.content or ""), "id": row.id}
+                    for row in rows
+                ]
                 await conn.execute(
-                    sa.text(
-                        "SELECT id, content FROM chunks "
-                        "WHERE id > :last_id ORDER BY id LIMIT :lim"
-                    ),
-                    {"last_id": last_id, "lim": _BATCH_SIZE},
+                    sa.text("UPDATE chunks SET tsv = to_tsvector('simple', :mc) WHERE id = :id"),
+                    params,
                 )
-            ).fetchall()
+                await conn.commit()
 
-            if not rows:
-                break
+                updated += len(rows)
+                last_id = rows[-1].id
+                print(f"  {updated}/{total} done...")
 
-            params = [
-                {"mc": morpheme_tokenize(row.content or ""), "id": row.id}
-                for row in rows
-            ]
-            await conn.execute(
-                sa.text("UPDATE chunks SET tsv = to_tsvector('simple', :mc) WHERE id = :id"),
-                params,
-            )
+            await conn.execute(sa.text("ANALYZE chunks"))
             await conn.commit()
+    finally:
+        await engine.dispose()
 
-            updated += len(rows)
-            last_id = rows[-1].id
-            print(f"  {updated}/{total} done...")
-
-        await conn.execute(sa.text("ANALYZE chunks"))
-        await conn.commit()
-
-    await engine.dispose()
     print(f"Done. {updated} chunks updated.")
 
 
