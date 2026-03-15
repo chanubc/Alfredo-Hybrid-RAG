@@ -99,7 +99,7 @@ def _token_matches(query_token: str, keyword: str) -> bool:
     morpheme_tokenize가 _build_query_variants에서 이미 particle 제거 + compound 분리를
     처리하므로, 여기서는 단순 exact/substring 매칭만 수행.
 
-    예: "공고" in "채용공고" → True / "하나증권" in "하나증권공고" → False
+    예: "공고" in "채용공고" → True / "하나증권" in "하나증권공고" → True (substring 방향만 허용)
     """
     q = query_token.lower()
     k = keyword.lower()

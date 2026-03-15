@@ -56,7 +56,7 @@ def test_morpheme_tokenize_simple_noun():
     result = morpheme_tokenize("증권에서")
     tokens = result.split()
     assert "증권" in tokens, f"'증권' not found in {tokens}"
-    assert "증권에서" not in tokens, "particle 'ㅇ에서' should be stripped"
+    assert "증권에서" not in tokens, "particle '에서' should be stripped"
 
 
 def test_morpheme_tokenize_preserves_english():
@@ -66,7 +66,7 @@ def test_morpheme_tokenize_preserves_english():
     """
     result = morpheme_tokenize("AI 개발자를")
     tokens = result.split()
-    assert "AI" in tokens or "ai" in tokens.lower().split(), \
+    assert "AI" in tokens or "ai" in [t.lower() for t in tokens], \
         f"'AI' not found in {tokens}"
     assert "개발자" in tokens, f"'개발자' not found in {tokens}"
 

@@ -30,10 +30,15 @@ def morpheme_tokenize(text: str) -> str:
     if not text or not text.strip():
         return ""
 
-    tokens = _kiwi().tokenize(text)
-    meaningful = [
-        t.form
-        for t in tokens
-        if t.tag.startswith(("NN", "VV", "SL", "XR"))
-    ]
-    return " ".join(meaningful)
+    try:
+        tokens = _kiwi().tokenize(text)
+        meaningful = [
+            t.form
+            for t in tokens
+            if t.tag.startswith(("NN", "VV", "SL", "XR"))
+        ]
+        return " ".join(meaningful)
+    except Exception:
+        # Fallback to whitespace split so FTS/keyword paths keep working
+        # even if kiwipiepy is unavailable or raises unexpectedly.
+        return " ".join(text.split())
