@@ -10,7 +10,17 @@ Phase B는 **PostgreSQL FTS(Sparse) 레이어**에 kiwipiepy 형태소 분석을
 
 ---
 
-## 🔴 Phase A 잔존 문제 (Before Phase B)
+## 개선 단계
+
+| 단계 | FTS 레이어 | Keyword 레이어 | 설명 |
+|------|-----------|--------------|------|
+| **Pre-Phase A** | raw query | raw token 매칭 | 조사/복합어 모두 실패 |
+| **Phase A** | raw query (0점) | morpheme 변형 + `_token_matches` | keyword만 복구 |
+| **Phase B** | morpheme FTS | morpheme 변형 + `_token_matches` | FTS까지 복구 |
+
+---
+
+## 🔴 Phase A 잔존 문제
 
 ```
 사용자 쿼리: "채용공고를"
@@ -19,19 +29,7 @@ plainto_tsquery('simple', '채용공고를') → tsquery: '채용공고를' (단
 to_tsvector('simple', '채용 공고 안내') → '공고' | '안내' | '채용'
 
 '채용공고를' ∉ {'채용', '공고', '안내'} → sparse_score = 0  ❌
-```
-
-복합어 + 조사가 붙은 쿼리는 **FTS에서 항상 0점** — dense score만으로 검색됨.
-
----
-
-## 🟢 Phase B 솔루션 (After)
-
-```
-morpheme_tokenize('채용공고를') → '채용 공고'   (kiwipiepy: 복합어 분리 + 조사 제거)
-
-plainto_tsquery('simple', '채용 공고') → '채용' & '공고'
-'채용' ∈ tsvector AND '공고' ∈ tsvector → sparse_score > 0  ✅
+→ Phase A가 keyword overlap으로 일부 복구했지만 FTS 레이어는 여전히 0
 ```
 
 ---
@@ -40,54 +38,54 @@ plainto_tsquery('simple', '채용 공고') → '채용' & '공고'
 
 > **측정 환경**: 라이브 DB (2,614 chunks), `scripts/benchmark_fts_accuracy.py`
 > **Ground truth**: 쿼리 어근이 chunk content에 포함된 chunks
-> **Before**: `plainto_tsquery('simple', raw_query)`
-> **After**: `plainto_tsquery('simple', morpheme_tokenize(query))`
+> **지표**: FTS+Keyword 통합 MRR (combined rank)
 
-### 쿼리별 상세 결과
+### 쿼리별 MRR 상세 (FTS / Keyword / Combined)
 
-| 쿼리 | 형태소 변환 | 관련 chunks | P@5 Before | P@5 After | MRR Before | MRR After | NDCG@5 Before | NDCG@5 After | 1위 Before | 1위 After |
-|------|------------|:-----------:|:----------:|:---------:|:----------:|:---------:|:-------------:|:------------:|:----------:|:---------:|
-| `채용공고를` | `채용 공고` | 114 | 0.0000 | **1.0000** | 0.0000 | **1.0000** | 0.0000 | **1.0000** | ❌ | ✅ |
-| `개발자채용` | `개발자 채용` | 160 | 0.0000 | **0.4000** | 0.0000 | **1.0000** | 0.0000 | **0.5531** | ❌ | ✅ |
-| `입사지원서` | `입사 지원서` | 173 | 0.0000 | **1.0000** | 0.0000 | **1.0000** | 0.0000 | **1.0000** | ❌ | ✅ |
-| `백엔드에서` | `백 엔드` | 4 | 0.0000 | **0.8000** | 0.0000 | **1.0000** | 0.0000 | **1.0000** | ❌ | ✅ |
-| `증권에서` | `증권` | 17 | 0.0000 | **1.0000** | 0.0000 | **1.0000** | 0.0000 | **1.0000** | ❌ | ✅ |
-| `스타트업에서의` | `스타트업` | 5 | 0.0000 | **1.0000** | 0.0000 | **1.0000** | 0.0000 | **1.0000** | ❌ | ✅ |
-| `머신러닝으로` | `머신 러닝` | 9 | 0.0000 | **0.8000** | 0.0000 | **1.0000** | 0.0000 | **0.8304** | ❌ | ✅ |
-| `AI채용` | `AI 채용` | 1,481 | 0.0000 | **1.0000** | 0.0000 | **1.0000** | 0.0000 | **1.0000** | ❌ | ✅ |
-| `Python백엔드` | `Python 백 엔드` | 148 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | ❌ | ❌ |
-| `LLM활용` | `LLM 활용` | 142 | 0.0000 | **1.0000** | 0.0000 | **1.0000** | 0.0000 | **1.0000** | ❌ | ✅ |
+| 쿼리 | 형태소 | 관련 | FTS Pre-A | FTS Ph-A | FTS Ph-B | KW Pre-A | KW Ph-A | KW Ph-B | **Combined Pre-A** | **Combined Ph-A** | **Combined Ph-B** |
+|------|--------|:---:|:---------:|:--------:|:--------:|:--------:|:-------:|:-------:|:------------------:|:-----------------:|:-----------------:|
+| `채용공고를` | `채용 공고` | 114 | 0 | 0 | 1.0 | 0 | 1.0 | 1.0 | 0 | 1.0 | **1.0** |
+| `개발자채용` | `개발자 채용` | 160 | 0 | 0 | 1.0 | 0 | 1.0 | 1.0 | 0 | 1.0 | **1.0** |
+| `입사지원서` | `입사 지원서` | 173 | 0 | 0 | 1.0 | 0 | 1.0 | 1.0 | 0 | 1.0 | **1.0** |
+| `백엔드에서` | `백 엔드`* | 4 | 0 | 0 | 1.0 | 0 | 0 | 0 | 0 | 0 | **1.0** |
+| `증권에서` | `증권` | 17 | 0 | 0 | 1.0 | 0 | 1.0 | 1.0 | 0 | 1.0 | **1.0** |
+| `스타트업에서의` | `스타트업` | 5 | 0 | 0 | 1.0 | 0 | 0 | 0 | 0 | 0 | **1.0** |
+| `머신러닝으로` | `머신 러닝`* | 9 | 0 | 0 | 1.0 | 0 | 0 | 0 | 0 | 0 | **1.0** |
+| `AI채용` | `AI 채용` | 1,481 | 0 | 0 | 1.0 | 0 | 1.0 | 1.0 | 0 | 1.0 | **1.0** |
+| `Python백엔드` | `Python 백 엔드`* | 148 | 0 | 0 | 0 | 0 | 1.0 | 1.0 | 0 | 1.0 | **1.0** |
+| `LLM활용` | `LLM 활용` | 142 | 0 | 0 | 1.0 | 0 | 1.0 | 1.0 | 0 | 1.0 | **1.0** |
 
-### 종합 지표
-
-| 지표 | Before (Phase A) | After (Phase B) | 향상 |
-|------|:----------------:|:---------------:|:----:|
-| **P@5** | 0.0000 | **0.8000** | 0 → 0.80 |
-| **MRR** | 0.0000 | **0.9000** | 0 → 0.90 |
-| **NDCG@5** | 0.0000 | **0.8384** | 0 → 0.84 |
-| **1위 정확도** | 0/10 (0%) | **9/10 (90%)** | **+900%p** |
-
-> **Before는 10개 쿼리 전부 sparse_score = 0** — FTS 레이어가 완전히 무력했음
+> \* kiwipiepy가 외래어를 음절 분리 (예: `백엔드` → `백 엔드`). FTS 실패지만 keyword가 커버.
 
 ---
 
-## ⚠️ 예외 케이스: `Python백엔드`
+### 종합 지표 (FTS + Keyword Combined)
 
-`Python백엔드` → kiwipiepy가 `Python 백 엔드`로 분리 (백엔드를 "백" + "엔드"로 잘못 분리)
-
-- `백 엔드`로 조회 시 content에 "백"과 "엔드"가 함께 있는 chunks가 없어서 0점
-- **원인**: `백엔드`는 영어 loanword지만 한글 표기라 kiwipiepy가 음절 단위로 분리
-- **Phase C 개선 대상**: 외래어 사전 추가 또는 사용자 정의 사전(kiwipiepy `add_user_word`)
+| 지표 | Pre-Phase A | Phase A | Phase B | A → B | Pre → B |
+|------|:-----------:|:-------:|:-------:|:-----:|:-------:|
+| **P@5** | 0.0000 | 0.5200 | **0.9000** | **+73%** | ∞ |
+| **MRR** | 0.0000 | 0.7000 | **1.0000** | **+43%** | ∞ |
+| **NDCG@5** | 0.0000 | 0.5562 | **0.9316** | **+67%** | ∞ |
+| **Top-1 정확도** | 0/10 (0%) | 7/10 (70%) | **10/10 (100%)** | **+43%** | ∞ |
 
 ---
 
-## 📈 Phase A vs Phase B 레이어 비교
+## 분석
 
-| 검색 레이어 | Phase A | Phase B |
-|-----------|:-------:|:-------:|
-| Dense (pgvector) | ✅ 정상 | ✅ 정상 |
-| Sparse FTS | ❌ 복합어/조사 쿼리 0점 | ✅ 90% 복구 |
-| Keyword rescoring | ✅ 조사 처리 | ✅ 유지 |
+### Pre-Phase A → Phase A (keyword rescoring 효과)
+- FTS는 여전히 0 — DB 레이어 무변경
+- keyword overlap이 morpheme 변형 덕에 0 → 0.52~0.70 확보
+- **`백엔드에서`, `스타트업에서의`, `머신러닝으로`** 3개는 keyword도 실패 → 여전히 0
+
+### Phase A → Phase B (FTS 복구 효과)
+- FTS가 morpheme query를 통해 실질적 signal 제공
+- keyword가 실패했던 3개 쿼리(`백엔드에서` 등)도 FTS가 커버
+- **10/10 쿼리 Top-1 정확도 100%** 달성
+
+### `Python백엔드` — 레이어 보완 사례
+- FTS: `Python 백 엔드`로 분리 → 매칭 실패
+- Keyword: `Python`, `백엔드` 각각 매칭 성공 → Combined 커버
+- Phase B에서 FTS와 Keyword가 상호 보완하여 정확도 유지
 
 ---
 
@@ -96,7 +94,7 @@ plainto_tsquery('simple', '채용 공고') → '채용' & '공고'
 ```
 app/infrastructure/rag/
   └── korean_utils.py
-      └── morpheme_tokenize(text) → str  # kiwipiepy NN/VV/SL/XR 추출
+      └── morpheme_tokenize(text) → str
 
 app/infrastructure/repository/
   └── chunk_repository.py
@@ -105,18 +103,14 @@ app/infrastructure/repository/
 
 scripts/
   ├── backfill_morpheme_tsvectors.py   # 기존 chunks 1회 백필 (완료: 2,614건)
-  └── benchmark_fts_accuracy.py        # 정확도 벤치마크
+  └── benchmark_fts_accuracy.py        # 3단계 정확도 벤치마크
 ```
 
 ---
 
-## 🧪 테스트
+## 🧪 재측정
 
 ```bash
-# 단위 테스트
-pytest tests/test_phase_b_morpheme_accuracy.py -v
-
-# 라이브 벤치마크
 python scripts/benchmark_fts_accuracy.py --user-id <TELEGRAM_ID>
 ```
 
