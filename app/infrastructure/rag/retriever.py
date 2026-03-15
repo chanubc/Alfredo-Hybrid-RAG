@@ -49,10 +49,15 @@ def _merge_results(chunk_results: list[dict], og_results: list[dict]) -> list[di
 def _build_query_variants(query: str) -> list[str]:
     """원문 + 공백제거본 + bi-gram + particle-stripped 변형 생성.
 
+    예: "하나 증권 채용" → includes:
+      - "하나 증권 채용" (original)
+      - "하나증권채용" (compact)
+      - "하나증권 채용" (bi-gram: tokens 0+1 joined)
+      - "하나 증권채용" (bi-gram: tokens 1+2 joined)
+      - particle-stripped variants of each above
+
     예: "채용공고를 찾습니다" → includes:
       - "채용공고를 찾습니다" (original)
-      - "채용공고를찾습니다" (compact)
-      - "채용공고를 찾습니다" (bi-gram if applicable)
       - "채용공고 찾습니다" (particle-stripped)
 
     Korean particles (을, 를, 에서, etc.) are stripped from each token.
