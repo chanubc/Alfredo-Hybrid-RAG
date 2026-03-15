@@ -33,9 +33,10 @@ _SUPPORTED_SCHEMES = ("postgresql://", "postgresql+", "postgres://")
 def _build_async_url(database_url: str) -> object:
     """Normalize DATABASE_URL to postgresql+asyncpg. Raises on unsupported schemes."""
     if not any(database_url.startswith(s) for s in _SUPPORTED_SCHEMES):
+        scheme = database_url.split("://")[0] if "://" in database_url else database_url[:20]
         raise RuntimeError(
-            f"Unsupported DATABASE_URL scheme. Expected a PostgreSQL URL "
-            f"(postgresql://, postgresql+<driver>://, postgres://). Got: {database_url[:30]!r}"
+            f"Unsupported DATABASE_URL scheme: {scheme!r}. "
+            f"Expected postgresql://, postgresql+<driver>://, or postgres://"
         )
     return make_url(database_url).set(drivername="postgresql+asyncpg")
 
