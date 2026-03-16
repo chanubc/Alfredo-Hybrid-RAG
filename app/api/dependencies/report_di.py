@@ -43,7 +43,7 @@ def build_weekly_report_usecase(session: AsyncSession) -> GenerateWeeklyReportUs
     from app.api.dependencies.auth_di import get_user_repository, get_telegram_client
     from app.api.dependencies.link_di import get_openai_client, get_link_repository
 
-    user_repo: IUserRepository = get_user_repository()
+    user_repo: IUserRepository = get_user_repository(session)
     link_repo: ILinkRepository = get_link_repository(session)
     rec_repo: IRecommendationRepository = get_recommendation_repository(session)
     openai: AIAnalysisPort = get_openai_client()
