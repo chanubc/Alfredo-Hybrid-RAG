@@ -58,7 +58,53 @@ The system processes messages in a multi-stage pipeline:
    - **Knowledge Agent** → Function calling with tools (search KB, get unread links)
 5. **Response** → Send results back to Telegram user
 
-![System Flow Diagram](docs/assets/system-flow.svg)
+```mermaid
+%%{init: {"theme": "base", "look": "handDrawn", "themeVariables": {"fontFamily": "Comic Sans MS"}}}%%
+flowchart TD
+    classDef user fill:#dbeafe,stroke:#0284c7,color:#1e3a8a
+    classDef interface fill:#ccfbf1,stroke:#0d9488,color:#115e59
+    classDef router fill:#f3e8ff,stroke:#9333ea,color:#4c1d95
+    classDef usecase fill:#dcfce7,stroke:#22c55e,color:#14532d
+    classDef storage fill:#fed7aa,stroke:#f97316,color:#7c2d12
+    classDef external fill:#ffe4e6,stroke:#e11d48,color:#881337
+
+    A["👤 Telegram User"]:::user
+    B["📱 Telegram Bot API"]:::interface
+    C["TelegramWebhookHandler"]:::router
+    D["MessageRouterService<br/>(+ IntentClassifier)"]:::router
+    E1["SaveLink UseCase"]:::usecase
+    E2["SaveMemo UseCase"]:::usecase
+    E3["Search UseCase"]:::usecase
+    E4["KnowledgeAgent<br/>(Ask Flow)"]:::usecase
+    E5["AuthService<br/>(Magic Link 생성)"]:::router
+    F["HybridRetriever"]:::usecase
+    G[("🗄️ PostgreSQL<br/>(DB & Vector)")]:::storage
+    H1["🧪 Jina Reader"]:::external
+    H2["🤖 OpenAI API<br/>(Embed/Analyze/Chat)"]:::external
+    H3["📜 Notion API<br/>(Sync)"]:::external
+    I["💬 Telegram Response<br/>(Answer or Web Link)"]:::user
+
+    A --> B --> C --> D
+    D -->|"URL"| E1
+    D -->|"Memo"| E2
+    D -->|"SEARCH"| E3
+    D -->|"ASK"| E4
+    D -->|"DASHBOARD"| E5
+    E1 -.->|"1. Scrape"| H1
+    E1 -.->|"2. Analyze & Embed"| H2
+    E1 -->|"3. Save"| G
+    E1 -.->|"4. Sync"| H3
+    E2 -.->|"1. Embed"| H2
+    E2 -->|"2. Save"| G
+    E2 -.->|"3. Sync"| H3
+    E3 --> F
+    E4 --> F
+    F -.->|"Embed Query"| H2
+    F -->|"Search"| G
+    E4 -.->|"Chat / Tool Call"| H2
+    E5 -->|"Generate JWT URL"| I
+    G --> I
+```
 
 ---
 
@@ -81,7 +127,59 @@ LinkdBot-RAG uses **Pragmatic Clean Architecture** with dependency inversion:
 - **Infrastructure**: Repository implementations, LLM clients, external API adapters
 - **Presentation**: FastAPI routers that depend only on Application layer via dependency injection
 
-![Architecture Diagram](docs/assets/clean-architecture.svg)
+```mermaid
+%%{init: {"theme": "base", "look": "handDrawn", "themeVariables": {"fontFamily": "Comic Sans MS"}}}%%
+flowchart TD
+    classDef domain fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#92400e
+    classDef app fill:#dcfce7,stroke:#059669,stroke-width:2px,color:#064e3b
+    classDef infra fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a8a
+    classDef pres fill:#f3e8ff,stroke:#9333ea,stroke-width:2px,color:#4c1d95
+
+    subgraph Presentation ["1. Presentation Layer (app/api, dashboard)"]
+        direction LR
+        P1["🌐 FastAPI<br/>(Webhook)"]:::pres
+        P2["🖥️ Streamlit<br/>(Dashboard)"]:::pres
+        P3["⏰ APScheduler<br/>(Cron)"]:::pres
+    end
+
+    subgraph Application ["2. Application Layer (app/application)"]
+        direction TB
+        A1["⚙️ Services & Agents<br/>(MessageRouter, KnowledgeAgent)"]:::app
+        A2["🎯 Use Cases<br/>(SaveLink, Search, Report)"]:::app
+        A3["🔌 Outbound Ports<br/>(ScraperPort, AIAnalysisPort)"]:::app
+
+        P1 -->|"Trigger"| A1
+        P1 -->|"Trigger"| A2
+        P2 -->|"Trigger"| A2
+        P3 -->|"Trigger"| A2
+
+        A1 -->|"Execute"| A2
+        A2 -->|"Define needs"| A3
+    end
+
+    subgraph Domain ["3. Domain Layer (app/domain)"]
+        direction TB
+        D1["📦 Entities<br/>(Link, Chunk, User)"]:::domain
+        D2["🧠 Domain Rules<br/>(scoring.py, drift.py)"]:::domain
+        D3["🔌 Repository Interfaces<br/>(ILinkRepository, etc.)"]:::domain
+
+        A2 -->|"Uses"| D3
+        A2 -->|"Manipulates"| D1
+        A2 -->|"Applies"| D2
+
+        A3 -.->|"References"| D1
+        D3 -.->|"References"| D1
+    end
+
+    subgraph Infrastructure ["4. Infrastructure Layer (app/infrastructure)"]
+        direction LR
+        I1["🗄️ Repository Adapters<br/>(PostgreSQL)"]:::infra
+        I2["📡 External Adapters<br/>(JinaAdapter, OpenAIClient)"]:::infra
+    end
+
+    I1 -.->|"✨ Implements (Dependency Inversion)"| D3
+    I2 -.->|"✨ Implements (Dependency Inversion)"| A3
+```
 
 ---
 
