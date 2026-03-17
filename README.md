@@ -274,20 +274,6 @@ For more solutions, see the [Troubleshooting Guide](docs/troubleshooting/).
 
 ---
 
-## License
-
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
-### Summary
-
-- **Permissions**: Commercial use, modification, distribution, private use
-- **Conditions**: License and copyright notice
-- **Limitations**: No liability or warranty
-
-For the full license text, see [LICENSE](LICENSE).
-
----
-
 ## Tech Stack
 
 | Category | Technology |
@@ -306,3 +292,17 @@ For the full license text, see [LICENSE](LICENSE).
 | **Security** | Fernet (notion_access_token 암호화), JWT (dashboard 인증) |
 | **Testing** | pytest |
 | **Infrastructure** | GCP VM · Docker · NGINX · GitHub Actions |
+
+---
+
+## License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
+### Summary
+
+- **Permissions**: Commercial use, modification, distribution, private use
+- **Conditions**: License and copyright notice
+- **Limitations**: No liability or warranty
+
+For the full license text, see [LICENSE](LICENSE).
