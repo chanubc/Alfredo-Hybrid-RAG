@@ -285,3 +285,24 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 - **Limitations**: No liability or warranty
 
 For the full license text, see [LICENSE](LICENSE).
+
+---
+
+## Tech Stack
+
+| Category | Technology |
+|----------|-----------|
+| **Language** | Python 3.11+ |
+| **Web Framework** | FastAPI (Async) |
+| **ORM** | SQLAlchemy |
+| **Database** | PostgreSQL 16 + pgvector |
+| **LLM** | OpenAI GPT-4.1 (summarize / classify / agent) |
+| **Embeddings** | OpenAI text-embedding-3-small (1536 dims) |
+| **Content Extraction** | Jina Reader (r.jina.ai) |
+| **Telegram** | Telegram Bot API (Webhook) |
+| **Notion** | Notion API (OAuth 2.0 + Page Sync) |
+| **Scheduler** | APScheduler |
+| **Dashboard** | Streamlit |
+| **Security** | Fernet (notion_access_token 암호화), JWT (dashboard 인증) |
+| **Testing** | pytest |
+| **Infrastructure** | GCP VM · Docker · NGINX · GitHub Actions |
