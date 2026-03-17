@@ -110,6 +110,8 @@ flowchart TD
 
 ### Dashboard Workflow
 
+`/dashboard` 명령어 → Magic Link 생성(JWT) → Streamlit 대시보드 접근. APScheduler가 주기적으로 interest drift를 감지하고 주간 리포트를 생성하여 Telegram으로 전송.
+
 ```mermaid
 %%{init: {"theme": "base", "look": "handDrawn", "themeVariables": {"fontFamily": "Comic Sans MS"}}}%%
 flowchart TD
@@ -215,124 +217,35 @@ flowchart TD
     I2 -.->|"✨ Implements (Dependency Inversion)"| A3
 ```
 
+### System Infrastructure
+
+GCP VM(chanu.shop) 위에서 Docker로 실행. NGINX가 리버스 프록시 역할을 하며 FastAPI(:8000)와 Streamlit(:8501)을 서빙.
+
+![System Architecture](docs/assets/system-architecture.png)
+
+### DB Schema
+
+`USERS → LINKS → CHUNKS` 3-테이블 구조. `LINKS`에 summary embedding(Vector 1536)이 저장되고, `CHUNKS`에 전문 검색용 TSVector와 청크 embedding이 저장됨.
+
+![ERD Diagram](docs/assets/erd-diagram.png)
+
 ---
 
 ## Directory Structure
 
 ```
 LinkdBot-RAG/
-├── app/                          # FastAPI application
-│   ├── main.py                   # Entry point
-│   ├── models/                   # Pydantic request/response models
-│   ├── utils/                    # Helper utilities
-│   ├── core/                     # Core configuration
-│   │   ├── config.py             # Settings (pydantic-settings)
-│   │   └── jwt.py                # JWT authentication (Phase 4)
-│   ├── domain/                   # Pure business logic (no external deps)
-│   │   ├── entities/             # Data models (Link, User, Chunk)
-│   │   └── repositories/         # Repository interfaces (ABC)
-│   ├── application/              # Use cases & services
-│   │   ├── ports/                # Abstract interfaces (Port/Adapter)
-│   │   ├── agents/               # Agent implementations
-│   │   ├── usecases/             # Business logic orchestration
-│   │   └── services/             # Orchestration services
-│   ├── infrastructure/           # External implementations
-│   │   ├── repository/           # SQLAlchemy repository implementations
-│   │   ├── llm/                  # LLM client implementations
-│   │   ├── rag/                  # RAG pipeline (retrieval, ranking)
-│   │   ├── adapters/             # External API adapters
-│   │   └── external/             # External service clients
-│   └── api/                      # HTTP routers & controllers
-│       ├── v1/endpoints/         # API routes
-│       └── dependencies/         # Dependency injection
-├── dashboard/                    # Streamlit dashboard (Phase 4)
-│   ├── app.py                    # Dashboard entry point
-│   ├── api_client.py             # Backend API client
-│   └── tabs/                     # Dashboard pages
-├── tests/                        # Test suite
-│   ├── test_*.py                 # Unit & integration tests
-│   ├── test_webhook.http         # Webhook test requests
-│   └── test_webhook.sh           # Webhook test script
-├── docs/                         # Documentation
-│   ├── assets/                   # Images & diagrams (SVG)
-│   ├── troubleshooting/          # Troubleshooting guides
-│   └── superpowers/              # OMC design docs & plans
-├── alembic/                      # Database migrations
-├── requirements.txt              # Python dependencies
-├── docker-compose.yml            # Multi-container setup
-└── .env.example                  # Environment variables template
+├── app/
+│   ├── api/            # FastAPI routers & dependency injection
+│   ├── application/    # Use cases, services, ports (Port/Adapter)
+│   ├── domain/         # Entities, repository interfaces (pure logic)
+│   ├── infrastructure/ # DB, LLM, RAG, external API adapters
+│   └── core/           # Config, JWT
+├── dashboard/          # Streamlit (Home / Trends / Insights / Discover)
+├── alembic/            # DB migrations
+├── tests/
+└── docs/
 ```
-
----
-
-## Getting Started
-
-### Prerequisites
-- Python 3.11+
-- PostgreSQL 16 (with pgvector extension)
-- OpenAI API key
-- Telegram Bot token (from @BotFather)
-- Notion OAuth credentials (optional, for Notion sync)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/chanubc/LinkdBot-RAG.git
-   cd LinkdBot-RAG
-   ```
-
-2. **Set up Python environment**
-   ```bash
-   python3.11 -m venv venv
-   source venv/bin/activate  # macOS/Linux
-   # or: venv\Scripts\activate  # Windows
-   pip install -r requirements.txt
-   ```
-
-3. **Configure environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your credentials:
-   # - DATABASE_URL: PostgreSQL connection
-   # - OPENAI_API_KEY: OpenAI API key
-   # - TELEGRAM_BOT_TOKEN: Telegram bot token
-   # - TELEGRAM_WEBHOOK_URL: Your webhook URL
-   ```
-
-4. **Initialize database**
-   ```bash
-   alembic upgrade head
-   ```
-
-5. **Start the application**
-   ```bash
-   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-   ```
-
-6. **(Optional) Start Streamlit dashboard**
-   ```bash
-   streamlit run dashboard/app.py
-   ```
-
-### Webhook Setup
-
-1. Get your webhook URL: `https://your-domain.com/api/v1/webhooks/telegram`
-2. Configure Telegram webhook:
-   ```bash
-   curl -X POST https://api.telegram.org/bot<YOUR_TOKEN>/setWebhook \
-     -H "Content-Type: application/json" \
-     -d '{"url": "https://your-domain.com/api/v1/webhooks/telegram"}'
-   ```
-
-### Quick Test
-
-Send a URL to your Telegram bot:
-```
-https://example.com/article
-```
-
-Expected: Bot responds with extracted summary and stores the link.
 
 ---
 
