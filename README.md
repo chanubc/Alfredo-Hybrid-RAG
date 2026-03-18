@@ -46,6 +46,9 @@
   </tr>
 </table>
 
+<img width="2672" height="1431" alt="image" src="https://github.com/user-attachments/assets/5477af21-1368-43b8-b68a-12758125a396" />
+
+
 ---
 
 ## Core Features
