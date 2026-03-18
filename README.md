@@ -10,15 +10,15 @@
 
 ## Demo
 
-| Link Save & Notion Sync | Hybrid RAG (Dense + Sparse) | Knowledge Q&A (`/ask`) |
+| Link Save & Sync | Hybrid RAG | Knowledge Q&A |
 |:-:|:-:|:-:|
 | ![Link Save](docs/assets/screenshots/telegram-save-link-sync.jpg) | ![Hybrid RAG](docs/assets/screenshots/telegram-search-results.jpg) | ![Knowledge Q&A](docs/assets/screenshots/telegram-ask-answer.jpg) |
-| 텔레그램에 링크만 보내면 본문 스크랩 → 요약/분석 → 저장 → Notion 동기화까지 한 번에 처리 | 벡터 + 키워드 검색 후 reranking으로 정확도를 높임 | 저장된 링크/메모를 바탕으로 답변을 생성하는 개인 지식 Q&A 흐름 |
+| 본문 스크랩·요약 후 저장 및 Notion 동기화 | Dense+Sparse 검색 후 reranking 적용 | 저장된 링크·메모 기반 답변 생성 |
 
-| Proactive Weekly Report | Dashboard Entry | Quick Menu |
+| Weekly Report | Dashboard Entry | Quick Menu |
 |:-:|:-:|:-:|
 | ![Weekly Report](docs/assets/screenshots/telegram-weekly-report.jpg) | ![Dashboard Entry](docs/assets/screenshots/telegram-dashboard-entry.jpg) | ![Quick Menu](docs/assets/screenshots/telegram-quick-menu.jpg) |
-| drift / reactivation 기반으로 관심사 변화와 다시 볼 링크를 선제적으로 추천 | `/dashboard`로 JWT 매직 링크를 발급해 웹 대시보드로 바로 이동 | 검색, 질문, 리포트, 대시보드, 도움말을 버튼 중심으로 빠르게 실행 |
+| drift·reactivation 기반 추천 리포트 | JWT 매직 링크로 대시보드 이동 | 검색·질문·리포트 빠른 실행 |
 
 ---
 
