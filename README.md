@@ -32,6 +32,12 @@
 | 4 | **본문 스크랩 & Notion 요약 자동화** | 텔레그램에 링크만 보내면 해당 페이지의 본문 내용을 스크랩/크롤링하고, 요약·키워드·임베딩을 생성한 뒤 저장합니다. 이후 핵심 요약과 메타데이터를 Notion에도 자동 동기화해 다시 보기 쉬운 형태로 남깁니다. |
 | 5 | **멀티 서피스 UX** | 텔레그램을 메인 인터페이스로 유지하면서, Streamlit 대시보드와 Notion을 보조 표면으로 연결해 탐색/회고/재사용을 돕습니다. |
 
+### Hybrid RAG Architecture
+
+Dense(벡터) 검색과 Sparse(키워드/FTS) 검색을 함께 수행한 뒤 reranking으로 최종 순서를 정리하는 흐름을 한눈에 보여주는 개념도입니다.
+
+![Hybrid RAG Architecture](docs/assets/hybrid_rag_chart.png)
+
 ### Why These Matter Most
 
 제가 보기엔 핵심은 아래 3개예요.
