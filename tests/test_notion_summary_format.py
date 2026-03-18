@@ -1,53 +1,98 @@
-import unittest
+import importlib
 import sys
 import types
+import unittest
+from contextlib import contextmanager
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
-
-sqlalchemy = types.ModuleType("sqlalchemy")
-sqlalchemy_ext = types.ModuleType("sqlalchemy.ext")
-sqlalchemy_asyncio = types.ModuleType("sqlalchemy.ext.asyncio")
-sqlalchemy_asyncio.AsyncSession = object
-sqlalchemy_ext.asyncio = sqlalchemy_asyncio
-sqlalchemy.ext = sqlalchemy_ext
-sys.modules.setdefault("sqlalchemy", sqlalchemy)
-sys.modules.setdefault("sqlalchemy.ext", sqlalchemy_ext)
-sys.modules.setdefault("sqlalchemy.ext.asyncio", sqlalchemy_asyncio)
+from unittest.mock import AsyncMock, patch
 
 
-def _register_stub(module_name: str, attr_name: str) -> None:
+def _stub_module(module_name: str, **attrs: object) -> types.ModuleType:
     module = types.ModuleType(module_name)
-    setattr(module, attr_name, object)
-    sys.modules.setdefault(module_name, module)
+    for key, value in attrs.items():
+        setattr(module, key, value)
+    return module
 
 
-_register_stub("app.domain.repositories.i_chunk_repository", "IChunkRepository")
-_register_stub("app.domain.repositories.i_link_repository", "ILinkRepository")
-_register_stub("app.domain.repositories.i_user_repository", "IUserRepository")
-_register_stub("app.application.ports.ai_analysis_port", "AIAnalysisPort")
-_register_stub("app.application.ports.notion_port", "NotionPort")
-_register_stub("app.application.ports.scraper_port", "ScraperPort")
-_register_stub("app.application.ports.telegram_port", "TelegramPort")
+@contextmanager
+def _scoped_summary_test_imports():
+    fake_modules = {
+        "sqlalchemy": _stub_module("sqlalchemy"),
+        "sqlalchemy.ext": _stub_module("sqlalchemy.ext"),
+        "sqlalchemy.ext.asyncio": _stub_module(
+            "sqlalchemy.ext.asyncio",
+            AsyncSession=object,
+        ),
+        "app.domain.repositories.i_chunk_repository": _stub_module(
+            "app.domain.repositories.i_chunk_repository",
+            IChunkRepository=object,
+        ),
+        "app.domain.repositories.i_link_repository": _stub_module(
+            "app.domain.repositories.i_link_repository",
+            ILinkRepository=object,
+        ),
+        "app.domain.repositories.i_user_repository": _stub_module(
+            "app.domain.repositories.i_user_repository",
+            IUserRepository=object,
+        ),
+        "app.application.ports.ai_analysis_port": _stub_module(
+            "app.application.ports.ai_analysis_port",
+            AIAnalysisPort=object,
+        ),
+        "app.application.ports.notion_port": _stub_module(
+            "app.application.ports.notion_port",
+            NotionPort=object,
+        ),
+        "app.application.ports.scraper_port": _stub_module(
+            "app.application.ports.scraper_port",
+            ScraperPort=object,
+        ),
+        "app.application.ports.telegram_port": _stub_module(
+            "app.application.ports.telegram_port",
+            TelegramPort=object,
+        ),
+        "httpx": _stub_module("httpx", AsyncClient=object),
+        "app.core.config": _stub_module(
+            "app.core.config",
+            settings=SimpleNamespace(
+                NOTION_REDIRECT_URI="https://example.com/notion/callback",
+                NOTION_CLIENT_ID="test-client",
+                NOTION_CLIENT_SECRET="test-secret",
+            ),
+        ),
+    }
+    fake_modules["sqlalchemy"].ext = fake_modules["sqlalchemy.ext"]
+    fake_modules["sqlalchemy.ext"].asyncio = fake_modules["sqlalchemy.ext.asyncio"]
 
-httpx = types.ModuleType("httpx")
-httpx.AsyncClient = object
-sys.modules.setdefault("httpx", httpx)
+    target_modules = [
+        "app.infrastructure.external.notion_client",
+        "app.application.usecases.save_link_usecase",
+    ]
+    originals = {name: sys.modules.get(name) for name in fake_modules}
+    target_originals = {name: sys.modules.get(name) for name in target_modules}
 
-app_core_config = types.ModuleType("app.core.config")
-app_core_config.settings = SimpleNamespace(
-    NOTION_REDIRECT_URI="https://example.com/notion/callback",
-    NOTION_CLIENT_ID="test-client",
-    NOTION_CLIENT_SECRET="test-secret",
-)
-sys.modules.setdefault("app.core.config", app_core_config)
+    for name in [*fake_modules, *target_modules]:
+        sys.modules.pop(name, None)
 
-from app.application.usecases.save_link_usecase import SaveLinkUseCase
-from app.infrastructure.external.notion_client import _build_summary_blocks
+    try:
+        with patch.dict(sys.modules, fake_modules, clear=False):
+            notion_client = importlib.import_module("app.infrastructure.external.notion_client")
+            save_link_usecase = importlib.import_module(
+                "app.application.usecases.save_link_usecase"
+            )
+            yield notion_client, save_link_usecase.SaveLinkUseCase
+    finally:
+        for name in [*fake_modules, *target_modules]:
+            sys.modules.pop(name, None)
+        for name, module in {**originals, **target_originals}.items():
+            if module is not None:
+                sys.modules[name] = module
 
 
 class NotionSummaryFormatTest(unittest.TestCase):
     def test_build_summary_blocks_uses_paragraph_blocks_per_line(self):
-        blocks = _build_summary_blocks("첫 줄 요약\n둘째 줄 핵심\n• 셋째 줄도 허용")
+        with _scoped_summary_test_imports() as (notion_client, _):
+            blocks = notion_client._build_summary_blocks("첫 줄 요약\n둘째 줄 핵심\n• 셋째 줄도 허용")
 
         self.assertEqual(len(blocks), 3)
         self.assertTrue(all(block["type"] == "paragraph" for block in blocks))
@@ -73,7 +118,9 @@ class SaveLinkUseCaseSummaryFormattingTest(unittest.IsolatedAsyncioTestCase):
             "telegram": AsyncMock(),
             "notion": AsyncMock(),
         }
-        usecase = SaveLinkUseCase(**deps)
+
+        with _scoped_summary_test_imports() as (_, save_link_usecase_cls):
+            usecase = save_link_usecase_cls(**deps)
 
         deps["link_repo"].exists_by_user_and_url.return_value = False
         deps["scraper"].scrape.return_value = (
