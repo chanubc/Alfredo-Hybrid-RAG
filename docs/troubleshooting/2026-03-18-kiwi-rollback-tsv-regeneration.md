@@ -61,6 +61,13 @@ docker compose exec -T app python scripts/rebuild_tsvectors_without_kiwi.py --ba
 SELECT COUNT(*) FROM chunks WHERE tsv IS NULL;
 ```
 
+예시:
+
+```bash
+docker compose exec -T postgres-linkdbot psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+  -c "SELECT COUNT(*) FROM chunks WHERE tsv IS NULL;"
+```
+
 기대값: `0`
 
 ### 3) 샘플 검색 확인
