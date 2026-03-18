@@ -254,7 +254,6 @@ class ChunkRepository(IChunkRepository):
                     ) AS og_compact_tsv
                 FROM links l
                 WHERE l.user_id = :user_id
-                  AND l.summary_embedding IS NOT NULL
                   AND NOT EXISTS (
                       SELECT 1 FROM chunks c WHERE c.link_id = l.id
                   )

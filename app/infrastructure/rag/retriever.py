@@ -1,7 +1,10 @@
-import asyncio
 import json
 import re
 
+from app.application.services.search_query_builder import (
+    build_search_queries,
+    strip_trailing_punctuation,
+)
 from app.domain.repositories.i_chunk_repository import IChunkRepository
 from app.application.ports.ai_analysis_port import AIAnalysisPort
 from app.infrastructure.rag.korean_utils import strip_particles
@@ -18,22 +21,6 @@ _MAX_BM25_K = 30
 
 _MIN_RESULT_SIMILARITY = 0.30
 _RELATIVE_RESULT_RATIO = 0.60
-_TRAILING_PUNCTUATION = "!?.,:;)]}\"'”’"
-_SEARCH_FILLER_TAILS = {
-    "링크",
-    "관련",
-    "자료",
-    "내용",
-}
-_SEARCH_COMMAND_TAILS = {
-    "가져와",
-    "가져와줘",
-    "찾아줘",
-    "보여줘",
-    "알려줘",
-    "줘",
-    "좀",
-}
 _HANGUL_COMPOUND_RE = re.compile(r"^[가-힣]{4}$")
 
 
@@ -67,34 +54,37 @@ class HybridRetriever:
 
         merged_across_queries: list[dict] = []
         seen_queries: set[str] = set()
-        query_candidates = search_queries or _build_search_queries(query)
+        query_candidates = search_queries or build_search_queries(query)
 
-        for query_text in query_candidates:
+        for query_index, query_text in enumerate(query_candidates):
             candidate = query_text.strip()
             if not candidate or candidate in seen_queries:
                 continue
             seen_queries.add(candidate)
 
-            chunk_results, bm25_results = await asyncio.gather(
-                self._chunk_repo.search_similar(
-                    user_id,
-                    embedding,
-                    recall_k,
-                    query_text=candidate,
-                ),
-                self._chunk_repo.search_bm25(
-                    user_id,
-                    _build_bm25_query(candidate),
-                    bm25_k,
-                ),
+            chunk_results = await self._chunk_repo.search_similar(
+                user_id,
+                embedding,
+                recall_k,
+                query_text=candidate,
+            )
+            bm25_results = await self._chunk_repo.search_bm25(
+                user_id,
+                _build_bm25_query(candidate),
+                bm25_k,
             )
             merged = _merge_results(chunk_results, og_results, bm25_results)
             rescored = _rescore_with_keywords(merged, candidate)
-            deduped = _dedupe_by_link(rescored)
-            merged_across_queries = _merge_results(merged_across_queries, deduped)
+            deduped = _apply_score_cutoff(_dedupe_by_link(rescored))
+            merged_across_queries = _merge_query_batches(
+                merged_across_queries,
+                deduped,
+                query_index=query_index,
+            )
+            if len(merged_across_queries) >= top_k:
+                break
 
-        final_results = _dedupe_by_link(merged_across_queries)
-        return _apply_score_cutoff(final_results)[:top_k]
+        return merged_across_queries[:top_k]
 
 
 def _merge_results(*result_sets: list[dict]) -> list[dict]:
@@ -141,7 +131,7 @@ def _build_query_variants(query: str) -> list[str]:
     base = query.strip()
     variants = [base]
 
-    cleaned_tokens = [_strip_trailing_punctuation(t) for t in base.split()]
+    cleaned_tokens = [strip_trailing_punctuation(t) for t in base.split()]
     tokens = [t for t in cleaned_tokens if t]
     cleaned_base = " ".join(tokens)
     if cleaned_base and cleaned_base not in variants:
@@ -182,42 +172,6 @@ def _build_query_variants(query: str) -> list[str]:
         variants.append(split_variant)
 
     return variants
-
-
-def _build_search_queries(query: str) -> list[str]:
-    """Build search-specific lexical query family for fallback widening."""
-    base = query.strip()
-    if not base:
-        return []
-
-    queries = [base]
-
-    tokens = [_strip_trailing_punctuation(t) for t in base.split()]
-    tokens = [t for t in tokens if t]
-    if not tokens:
-        return queries
-
-    cleaned = " ".join(tokens)
-    if cleaned not in queries:
-        queries.append(cleaned)
-
-    core_tokens = tokens[:]
-    while core_tokens and core_tokens[-1] in (_SEARCH_FILLER_TAILS | _SEARCH_COMMAND_TAILS):
-        core_tokens.pop()
-
-    if core_tokens:
-        core = " ".join(core_tokens)
-        if core not in queries:
-            queries.append(core)
-
-    return queries
-
-
-def _strip_trailing_punctuation(token: str) -> str:
-    """Drop common sentence-ending punctuation from a token."""
-    return token.rstrip(_TRAILING_PUNCTUATION)
-
-
 def _split_hangul_compound_token(token: str) -> str:
     """Generically split simple 4-syllable Hangul compounds into 2+2 chunks.
 
@@ -231,10 +185,52 @@ def _split_hangul_compound_token(token: str) -> str:
 
 def _build_bm25_query(query: str) -> str:
     """Build a compact raw-text lexical query without Kiwi-specific preprocessing."""
-    tokens = [_strip_trailing_punctuation(token) for token in query.split()]
+    tokens = [strip_trailing_punctuation(token) for token in query.split()]
     stripped_tokens = [strip_particles(token) for token in tokens if token]
     normalized = [token for token in stripped_tokens if token]
     return " ".join(normalized) or query.strip()
+
+
+def _merge_query_batches(
+    existing: list[dict],
+    incoming: list[dict],
+    *,
+    query_index: int,
+) -> list[dict]:
+    """Preserve exact-query ordering while allowing duplicate upgrades.
+
+    The first lexical batch is the exact user query. Broader fallback batches
+    may fill recall gaps, but they should not reorder unrelated exact-query
+    hits above the user's original intent.
+    """
+    if not existing:
+        return incoming
+
+    ordered = existing[:]
+    index_by_link = {
+        result.get("link_id"): idx
+        for idx, result in enumerate(ordered)
+        if result.get("link_id") is not None
+    }
+
+    for result in incoming:
+        link_id = result.get("link_id")
+        if link_id is None:
+            ordered.append(result)
+            continue
+
+        existing_index = index_by_link.get(link_id)
+        if existing_index is None:
+            index_by_link[link_id] = len(ordered)
+            ordered.append(result)
+            continue
+
+        if result.get("similarity", 0) > ordered[existing_index].get("similarity", 0):
+            ordered[existing_index] = result
+
+    if query_index == 0:
+        return sorted(ordered, key=lambda item: item.get("similarity", 0), reverse=True)
+    return ordered
 
 
 def _token_matches(query_token: str, keyword: str) -> bool:

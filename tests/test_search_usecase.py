@@ -39,7 +39,7 @@ async def test_search_usecase_tries_normalized_queries_when_results_are_sparse()
 
 
 @pytest.mark.asyncio
-async def test_search_usecase_stops_after_first_query_when_top_k_is_filled():
+async def test_search_usecase_builds_progressive_query_family_for_spaced_query():
     retriever = AsyncMock()
     retriever.retrieve.return_value = [
         _make_result(1, "A", 0.9),
@@ -56,7 +56,7 @@ async def test_search_usecase_stops_after_first_query_when_top_k_is_filled():
         111,
         "롯데 채용 공고",
         10,
-        search_queries=["롯데 채용 공고"],
+        search_queries=["롯데 채용 공고", "롯데 채용", "롯데"],
     )
     assert [r["link_id"] for r in results] == [1, 2, 3, 4, 5]
 
@@ -80,4 +80,52 @@ async def test_search_usecase_preserves_retriever_ranked_results():
         "채용공고 링크",
         10,
         search_queries=["채용공고 링크", "채용공고"],
+    )
+
+
+@pytest.mark.asyncio
+async def test_search_usecase_builds_general_ai_query_family():
+    retriever = AsyncMock()
+    retriever.retrieve.return_value = [_make_result(1, "AI 자료", 0.7)]
+    usecase = SearchUseCase(retriever=retriever, reranker=SimpleReranker())
+
+    await usecase.execute(111, "AI 관련 자료 알려줘", top_k=5)
+
+    retriever.retrieve.assert_awaited_once_with(
+        111,
+        "AI 관련 자료 알려줘",
+        10,
+        search_queries=["AI 관련 자료 알려줘", "AI"],
+    )
+
+
+@pytest.mark.asyncio
+async def test_search_usecase_builds_general_python_query_family():
+    retriever = AsyncMock()
+    retriever.retrieve.return_value = [_make_result(1, "파이썬 비동기", 0.7)]
+    usecase = SearchUseCase(retriever=retriever, reranker=SimpleReranker())
+
+    await usecase.execute(111, "파이썬 비동기 자료 보여줘", top_k=5)
+
+    retriever.retrieve.assert_awaited_once_with(
+        111,
+        "파이썬 비동기 자료 보여줘",
+        10,
+        search_queries=["파이썬 비동기 자료 보여줘", "파이썬 비동기", "파이썬"],
+    )
+
+
+@pytest.mark.asyncio
+async def test_search_usecase_builds_progressive_query_family_for_general_topic():
+    retriever = AsyncMock()
+    retriever.retrieve.return_value = [_make_result(1, "스타트업 취업", 0.7)]
+    usecase = SearchUseCase(retriever=retriever, reranker=SimpleReranker())
+
+    await usecase.execute(111, "스타트업 취업 전략", top_k=5)
+
+    retriever.retrieve.assert_awaited_once_with(
+        111,
+        "스타트업 취업 전략",
+        10,
+        search_queries=["스타트업 취업 전략", "스타트업 취업", "스타트업"],
     )

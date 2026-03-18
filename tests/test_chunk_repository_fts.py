@@ -153,3 +153,20 @@ async def test_search_bm25_sql_keeps_raw_text_rank_path():
     assert "DISTINCT ON (l.id)" in sql_text
     assert "replace(COALESCE(l.title, ''), ' ', '')" in sql_text
     assert "morpheme" not in sql_text.lower()
+
+
+@pytest.mark.asyncio
+async def test_search_bm25_og_candidates_do_not_require_summary_embedding():
+    repo, db = make_repo()
+    mock_result = MagicMock()
+    mock_result.mappings.return_value = []
+    db.execute.return_value = mock_result
+
+    await repo.search_bm25(
+        user_id=1,
+        query_text="AI 관련 자료",
+        top_k=10,
+    )
+
+    sql_text = str(db.execute.call_args[0][0])
+    assert "summary_embedding IS NOT NULL" not in sql_text

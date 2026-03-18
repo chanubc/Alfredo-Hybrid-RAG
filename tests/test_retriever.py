@@ -1,4 +1,5 @@
 import json
+import asyncio
 import pytest
 from unittest.mock import AsyncMock
 from app.infrastructure.rag.retriever import HybridRetriever
@@ -569,3 +570,92 @@ async def test_direct_retriever_call_uses_search_query_family_when_not_supplied(
 
     called_queries = [call.args[1] for call in chunk_repo.search_bm25.await_args_list]
     assert called_queries == ["채용공고 링크 알려줘", "채용공고"]
+
+
+@pytest.mark.asyncio
+async def test_direct_retriever_call_uses_search_query_family_for_general_ai_query():
+    retriever, chunk_repo = make_retriever()
+    chunk_repo.search_similar.return_value = []
+    chunk_repo.search_og_links.return_value = []
+    chunk_repo.search_bm25.return_value = []
+
+    await retriever.retrieve(user_id=111, query="AI 관련 자료 알려줘", top_k=5)
+
+    called_queries = [call.args[1] for call in chunk_repo.search_bm25.await_args_list]
+    assert called_queries == ["AI 관련 자료 알려줘", "AI"]
+
+
+@pytest.mark.asyncio
+async def test_direct_retriever_call_uses_progressive_general_query_family():
+    retriever, chunk_repo = make_retriever()
+    chunk_repo.search_similar.return_value = []
+    chunk_repo.search_og_links.return_value = []
+    chunk_repo.search_bm25.return_value = []
+
+    await retriever.retrieve(user_id=111, query="스타트업 취업 전략", top_k=5)
+
+    called_queries = [call.args[1] for call in chunk_repo.search_bm25.await_args_list]
+    assert called_queries == ["스타트업 취업 전략", "스타트업 취업", "스타트업"]
+
+
+@pytest.mark.asyncio
+async def test_broader_fallback_results_do_not_outrank_exact_general_query_hits():
+    retriever, chunk_repo = make_retriever()
+    chunk_repo.search_og_links.return_value = []
+
+    exact_result = _make_result(
+        1,
+        "AI 관련 자료 모음",
+        ["AI", "자료", "가이드"],
+        dense_score=0.65,
+        similarity=0.65,
+    )
+    broad_result = _make_result(
+        2,
+        "AI 최신 뉴스",
+        ["AI", "뉴스", "트렌드"],
+        dense_score=0.0,
+        similarity=0.92,
+    )
+
+    chunk_repo.search_similar.side_effect = [
+        [exact_result],
+        [],
+    ]
+    chunk_repo.search_bm25.side_effect = [
+        [],
+        [{**broad_result, "bm25_score": 0.92}],
+    ]
+
+    results = await retriever.retrieve(user_id=111, query="AI 관련 자료 알려줘", top_k=5)
+
+    assert results[0]["link_id"] == 1
+    assert [r["link_id"] for r in results] == [1, 2]
+
+
+@pytest.mark.asyncio
+async def test_retriever_avoids_concurrent_db_queries_on_same_repository_session():
+    retriever, chunk_repo = make_retriever()
+    chunk_repo.search_og_links.return_value = []
+    state = {"active": False}
+
+    async def search_similar(*args, **kwargs):
+        if state["active"]:
+            raise AssertionError("concurrent DB query detected")
+        state["active"] = True
+        await asyncio.sleep(0)
+        state["active"] = False
+        return []
+
+    async def search_bm25(*args, **kwargs):
+        if state["active"]:
+            raise AssertionError("concurrent DB query detected")
+        state["active"] = True
+        await asyncio.sleep(0)
+        state["active"] = False
+        return []
+
+    chunk_repo.search_similar.side_effect = search_similar
+    chunk_repo.search_bm25.side_effect = search_bm25
+
+    await retriever.retrieve(user_id=111, query="AI 관련 자료 알려줘", top_k=5)

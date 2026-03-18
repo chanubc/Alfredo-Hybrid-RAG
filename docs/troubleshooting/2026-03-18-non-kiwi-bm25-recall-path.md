@@ -14,13 +14,15 @@ This patch adds a **non-Kiwi sparse recall path** that keeps the existing
 
 1. `HybridRetriever.retrieve()` still fetches the dense hybrid chunk path and OG path.
 2. It now also calls `ChunkRepository.search_bm25()` for the lexical path.
-3. Search-driven fallback queries (for example `채용공고 링크` → `채용공고`) are built in `SearchUseCase`, and direct `HybridRetriever` callers can fall back to the same query family automatically. `HybridRetriever` computes the embedding **once** for the original query and fans out only the lexical/database lookups across those query texts.
-4. `search_bm25()`:
+3. Search-driven fallback queries are built in a shared search-query builder (not the router), so `/search`, natural-language search, and direct `HybridRetriever` callers all reuse the same rewrite behavior. The fallback family now supports both tail trimming (for example `채용공고 링크 가져와` → `채용공고`) and progressive broadening (for example `스타트업 취업 전략` → `스타트업 취업` → `스타트업`).
+4. `HybridRetriever` computes the embedding **once** for the original query, runs DB paths sequentially on the shared repository session, and keeps exact-query results ahead of broader fallback-only additions so widened recall does not outrank the user's original intent.
+5. `search_bm25()`:
    - reuses the existing `chunks.tsv` index for the chunk-content path
    - adds a compact no-space title/summary lexical fallback so `채용공고` can still match `채용 공고`
    - ranks chunk hits with weighted title/summary + `c.tsv`
    - uses `plainto_tsquery('simple', ...)` for a safer raw-user-text path
    - collapses chunk hits per `link_id` before applying the recall limit
+   - allows OG lexical candidates even when they do not have `summary_embedding`
    - returns lexical candidates for the normal Python rescoring/dedupe flow
 
 So the retrieval stack is now:
@@ -37,7 +39,8 @@ So the retrieval stack is now:
 - No schema migration
 - No Kiwi-specific tokenization
 - Reuses the existing `chunks.tsv` index for chunk-backed lexical recall while keeping OG lexical recall scoped to a smaller inline title/summary path
-- Runs in parallel with the other DB paths to limit latency regression
+- Keeps query rewriting below the router, so search behavior stays consistent across search entry points
+- Avoids concurrent use of the same SQLAlchemy `AsyncSession`
 
 ## Expected effect
 
