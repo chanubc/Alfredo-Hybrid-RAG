@@ -17,6 +17,10 @@ class TestStripParticles:
         """Multiple particle types: '증권에서' → '증권'"""
         assert strip_particles("증권에서") == "증권"
 
+    def test_strip_particles_multi_char_direction_particle(self):
+        """Direction particle: '증권으로' → '증권'"""
+        assert strip_particles("증권으로") == "증권"
+
     def test_strip_particles_preserve_short_token(self):
         """Preserve single character tokens after strip is too short: '을' → '을'"""
         assert strip_particles("을") == "을"
@@ -37,9 +41,10 @@ class TestStripParticles:
         """Subject marker particle: '일이' → '일이' (too short after strip, keep original)"""
         assert strip_particles("일이") == "일이"
 
-    def test_strip_particles_wa_and_particle(self):
-        """'와' and particle: '개발과' → '개발'"""
-        assert strip_particles("개발과") == "개발"
+    def test_strip_particles_preserves_ambiguous_bare_noun(self):
+        """Bare nouns/brands ending with particle-like syllables should stay intact."""
+        assert strip_particles("하나로") == "하나로"
+        assert strip_particles("오늘도") == "오늘도"
 
     def test_strip_particles_eun_topic_marker(self):
         """Topic marker: '검색은' → '검색'"""

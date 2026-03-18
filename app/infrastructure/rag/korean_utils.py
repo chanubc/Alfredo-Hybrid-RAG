@@ -1,12 +1,15 @@
 """Korean language utilities for particle stripping."""
 
-# Korean particles (조사) commonly attached to nouns
+# Korean particles (조사) commonly attached to nouns.
+#
+# Be conservative with single-syllable suffixes that also frequently appear as
+# part of bare nouns/brand names (e.g. "하나로", "오늘도"). The rollback path
+# should prefer avoiding false-positive boosts over aggressively stripping every
+# particle-like ending without morphological context.
 _PARTICLES = {
     "을", "를", "이", "가", "은", "는",  # Object/Subject markers
-    "에", "에서", "으로", "로",  # Location/Direction
-    "의",  # Possessive
-    "와", "과", "도", "만",  # Addition
-    "까지", "부터", "처럼", "보다",  # Range/Comparison
+    "에서", "으로",  # Location/Direction
+    "까지", "부터",  # Range/Comparison
     "에게", "한테", "께서",  # Indirect object
 }
 

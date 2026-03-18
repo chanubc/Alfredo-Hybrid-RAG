@@ -13,6 +13,7 @@ _MAX_RECALL_K = 100
 
 _MIN_RESULT_SIMILARITY = 0.30
 _RELATIVE_RESULT_RATIO = 0.60
+_TRAILING_PUNCTUATION = "!?.,:;)]}\"'”’"
 
 
 class HybridRetriever:
@@ -65,8 +66,13 @@ def _build_query_variants(query: str) -> list[str]:
     base = query.strip()
     variants = [base]
 
+    cleaned_tokens = [_strip_trailing_punctuation(t) for t in base.split()]
+    tokens = [t for t in cleaned_tokens if t]
+    cleaned_base = " ".join(tokens)
+    if cleaned_base and cleaned_base not in variants:
+        variants.append(cleaned_base)
+
     # Strip particles from all tokens
-    tokens = base.split()
     stripped_tokens = [strip_particles(t) for t in tokens]
     stripped_base = " ".join(stripped_tokens)
     if stripped_base and stripped_base not in variants:
@@ -97,6 +103,11 @@ def _build_query_variants(query: str) -> list[str]:
             variants.append(variant)
 
     return variants
+
+
+def _strip_trailing_punctuation(token: str) -> str:
+    """Drop common sentence-ending punctuation from a token."""
+    return token.rstrip(_TRAILING_PUNCTUATION)
 
 
 def _token_matches(query_token: str, keyword: str) -> bool:
