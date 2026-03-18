@@ -10,38 +10,40 @@
 
 ## Demo
 
-| Save Link Flow | Knowledge Agent (/ask) | Dashboard Home |
+| Link Save & Notion Sync | Hybrid Search (Vector + Keyword) | Knowledge Q&A (`/ask`) |
 |:-:|:-:|:-:|
-| ![Save Link](docs/assets/screenshots/demo-save-link.png) | ![Knowledge Agent](docs/assets/screenshots/demo-ask.png) | ![Dashboard](docs/assets/screenshots/demo-dashboard.png) |
-| Send any URL to Telegram bot → Auto-extract content, analyze with AI, store with vector embeddings, sync to Notion | Ask questions about your knowledge base → Hybrid search + AI agent answers with function calling → RAG-powered responses | Browse collected links, discover trends, manage personal knowledge library with smart filtering |
+| <img src="docs/assets/screenshots/telegram-save-link-sync.jpg" width="220" alt="링크 저장" /> | <img src="docs/assets/screenshots/telegram-search-results.jpg" width="220" alt="하이브리드 검색" /> | <img src="docs/assets/screenshots/telegram-ask-answer.jpg" width="220" alt="지식 Q&A" /> |
+| 텔레그램에 링크만 보내면 본문 스크랩 → 요약/분석 → 저장 → Notion 동기화까지 한 번에 처리 | Vector + keyword (sparse) 기반으로 저장된 링크를 함께 검색하고 바로 읽음 처리 가능 | 저장된 링크/메모를 바탕으로 답변을 생성하는 개인 지식 Q&A 흐름 |
+
+| Proactive Weekly Report | Dashboard Entry | Quick Menu |
+|:-:|:-:|:-:|
+| <img src="docs/assets/screenshots/telegram-weekly-report.jpg" width="220" alt="주간 리포트" /> | <img src="docs/assets/screenshots/telegram-dashboard-entry.jpg" width="220" alt="대시보드 진입" /> | <img src="docs/assets/screenshots/telegram-quick-menu.jpg" width="220" alt="빠른 메뉴" /> |
+| drift / reactivation 기반으로 관심사 변화와 다시 볼 링크를 선제적으로 추천 | `/dashboard`로 JWT 매직 링크를 발급해 웹 대시보드로 바로 이동 | 검색, 질문, 리포트, 대시보드, 도움말을 버튼 중심으로 빠르게 실행 |
 
 ---
 
-## Features
+## Core Features
 
-### Smart Link Collection
-- Send any URL directly to the Telegram bot
-- Auto-extract URLs from text messages
-- Normalize URLs and prevent duplicates
+| Priority | Feature | Description |
+|---|---|---|
+| 1 | **Proactive Agent** | 사용자의 저장 패턴과 관심사 변화를 분석해 `drift`를 감지하고, `reactivation` 점수를 기반으로 다시 볼 만한 링크를 주간 리포트로 먼저 제안합니다. 이 프로젝트의 차별점이 가장 강하게 드러나는 영역입니다. |
+| 2 | **Hybrid Search (Vector + Keyword / Sparse)** | pgvector 기반 vector semantic search와 keyword/FTS 기반 sparse search를 함께 사용해 관련 링크를 더 안정적으로 찾습니다. `/search` 품질뿐 아니라 `/ask` 답변 품질의 기반이 됩니다. |
+| 3 | **지식 Q&A 에이전트** | `/ask` 요청 시 저장된 링크와 메모를 조회한 뒤 근거 기반 답변을 생성합니다. 단순 챗봇이 아니라 개인 지식 베이스를 활용하는 응답 흐름입니다. |
+| 4 | **본문 스크랩 & Notion 요약 자동화** | 텔레그램에 링크만 보내면 해당 페이지의 본문 내용을 스크랩/크롤링하고, 요약·키워드·임베딩을 생성한 뒤 저장합니다. 이후 핵심 요약과 메타데이터를 Notion에도 자동 동기화해 다시 보기 쉬운 형태로 남깁니다. |
+| 5 | **멀티 서피스 UX** | 텔레그램을 메인 인터페이스로 유지하면서, Streamlit 대시보드와 Notion을 보조 표면으로 연결해 탐색/회고/재사용을 돕습니다. |
 
-### Intelligent Indexing
-- Content scraping from URLs using Jina Reader
-- Semantic analysis with OpenAI embeddings and keyword extraction
+### Why These Matter Most
 
-### Hybrid RAG Search
-- Dense search (semantic similarity) + Sparse search (keyword matching)
-- Rerank results with keyword overlap optimization for better accuracy
+제가 보기엔 핵심은 아래 3개예요.
 
-### Proactive Knowledge
-- Interest drift detection based on activity patterns
-- Reactivation scoring to resurface relevant old knowledge
-- Weekly digest reports sent directly to Telegram
+1. **Proactive Agent (drift + reactivation)**  
+   이 프로젝트를 “저장 앱”이 아니라 “먼저 챙겨주는 지식 코파일럿”으로 바꾸는 가장 중요한 기능입니다.
 
-### Multi-Platform
-- **Telegram Bot**: Primary interface (slash commands, auto-collection)
-- **Notion Sync**: One-way export with user's Notion workspace (OAuth)
-- **Streamlit Dashboard**: Personal knowledge library with analytics
-- **REST API**: Full CRUD operations for programmatic access
+2. **Hybrid Search (vector + keyword / sparse)**  
+   사람들이 바로 이해할 수 있는 표현으로 보면 “벡터 검색 + 키워드 검색” 조합입니다. 검색 품질이 좋아야 질문 응답, 추천, 리포트가 전부 살아납니다.
+
+3. **본문 스크랩과 Notion 요약 자동화**  
+   아무리 추천과 검색이 좋아도 원문 지식이 제대로 쌓이지 않으면 가치가 없습니다. 링크 본문을 자동으로 읽고 요약해 Notion까지 정리해주는 흐름이 실사용성을 받쳐줍니다.
 
 ---
 
@@ -49,16 +51,16 @@
 
 ### Main Workflow
 
-The system processes messages in a multi-stage pipeline:
+시스템은 아래와 같은 다단계 파이프라인으로 메시지를 처리합니다.
 
-1. **Telegram Webhook** → Receives URL or text message
-2. **WebhookHandler** → Extracts URLs and routes message type
-3. **MessageRouter** → Classifies intent (SEARCH, MEMO, ASK, etc.)
-4. **Parallel Processing** → Three independent flows:
-   - **SaveLink** → Scrape, analyze, embed, store, sync Notion
-   - **Search** → Hybrid retrieval, rerank, return top results
-   - **Knowledge Agent** → Function calling with tools (search KB, get unread links)
-5. **Response** → Send results back to Telegram user
+1. **Telegram Webhook** → URL 또는 일반 텍스트 메시지 수신
+2. **WebhookHandler** → URL 추출 및 메시지 유형 분기
+3. **MessageRouter** → 의도 분류 (`SEARCH`, `MEMO`, `ASK` 등)
+4. **병렬 처리** → 세 가지 주요 흐름 실행
+   - **SaveLink** → 스크랩, 분석, 임베딩, 저장, Notion 동기화
+   - **Search** → Hybrid retrieval, rerank, 상위 결과 반환
+   - **Knowledge Agent** → 도구 호출 기반 질의응답 (지식 검색, 미읽음 링크 조회 등)
+5. **Response** → 결과를 Telegram 사용자에게 전송
 
 ```mermaid
 %%{init: {"theme": "base", "look": "handDrawn", "themeVariables": {"fontFamily": "Comic Sans MS"}}}%%
@@ -146,7 +148,7 @@ flowchart TD
 
 ## Architecture
 
-LinkdBot-RAG uses **Clean Architecture** with dependency inversion:
+LinkdBot-RAG는 의존성 역전을 적용한 **Clean Architecture**를 사용합니다.
 
 ```
     Presentation (API)
@@ -219,13 +221,13 @@ flowchart TD
 
 ### System Infrastructure
 
-GCP VM(chanu.shop) 위에서 Docker로 실행. NGINX가 리버스 프록시 역할을 하며 FastAPI(:8000)와 Streamlit(:8501)을 서빙.
+GCP VM(chanu.shop) 위에서 Docker로 실행합니다. NGINX가 리버스 프록시 역할을 하며 FastAPI(:8000)와 Streamlit(:8501)을 서빙합니다.
 
 ![System Architecture](docs/assets/system-architecture.png)
 
 ### DB Schema
 
-`USERS → LINKS → CHUNKS` 3-테이블 구조. `LINKS`에 summary embedding(Vector 1536)이 저장되고, `CHUNKS`에 전문 검색용 TSVector와 청크 embedding이 저장됨.
+`USERS → LINKS → CHUNKS` 3-테이블 구조입니다. `LINKS`에는 summary embedding(Vector 1536)이 저장되고, `CHUNKS`에는 전문 검색용 TSVector와 청크 embedding이 저장됩니다.
 
 ![ERD Diagram](docs/assets/erd-diagram.png)
 
@@ -253,11 +255,11 @@ LinkdBot-RAG/
 
 ### Hybrid Search Performance Issues
 
-**Problem**: Search results are slow or inaccurate.
+**문제**: 검색 결과가 느리거나 부정확합니다.
 
-**Solution**: Use optimized hybrid search with cutoff optimization.
+**해결**: cutoff 최적화가 적용된 하이브리드 검색 전략을 사용합니다.
 
-For detailed hybrid search tuning and performance optimization, see [docs/troubleshooting/hybrid-search.md](docs/troubleshooting/hybrid-search.md).
+자세한 하이브리드 검색 튜닝과 성능 최적화는 [docs/troubleshooting/hybrid-search.md](docs/troubleshooting/hybrid-search.md)를 참고하세요.
 
 ### Common Issues
 
@@ -270,7 +272,7 @@ For detailed hybrid search tuning and performance optimization, see [docs/troubl
 | `Notion sync fails` | Verify Notion OAuth token and page permissions |
 | `Pydantic validation errors` | Check `.env` has all required variables; use `extra="ignore"` in Settings |
 
-For more solutions, see the [Troubleshooting Guide](docs/troubleshooting/).
+더 많은 해결 방법은 [Troubleshooting Guide](docs/troubleshooting/)를 참고하세요.
 
 ---
 
@@ -293,7 +295,7 @@ For more solutions, see the [Troubleshooting Guide](docs/troubleshooting/).
 
 ## License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+이 프로젝트는 MIT License를 따릅니다. 자세한 내용은 [LICENSE](LICENSE)를 참고하세요.
 
 ### Summary
 
@@ -301,4 +303,4 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 - **Conditions**: License and copyright notice
 - **Limitations**: No liability or warranty
 
-For the full license text, see [LICENSE](LICENSE).
+전체 라이선스 본문은 [LICENSE](LICENSE)를 참고하세요.
