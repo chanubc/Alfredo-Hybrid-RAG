@@ -51,25 +51,27 @@ def _merge_results(
     og_results: list[dict],
     bm25_results: list[dict],
 ) -> list[dict]:
-    """Dense/OG/BM25 결과를 병합. 기존 dense/OG를 우선 유지하고 BM25로 recall 보강."""
-    merged = list(chunk_results)
-    seen: set[int] = {r["link_id"] for r in merged if r.get("link_id") is not None}
+    """Dense/OG/BM25 결과를 병합하고, 같은 link 중 더 강한 후보로 업그레이드한다."""
+    ordered: list[dict] = []
+    index_by_link: dict[int, int] = {}
 
-    for result in og_results:
+    for result in chunk_results + og_results + bm25_results:
         link_id = result.get("link_id")
-        if link_id not in seen:
-            merged.append(result)
-            if link_id is not None:
-                seen.add(link_id)
+        if link_id is None:
+            ordered.append(result)
+            continue
 
-    for result in bm25_results:
-        link_id = result.get("link_id")
-        if link_id not in seen:
-            merged.append(result)
-            if link_id is not None:
-                seen.add(link_id)
+        existing_index = index_by_link.get(link_id)
+        if existing_index is None:
+            index_by_link[link_id] = len(ordered)
+            ordered.append(result)
+            continue
 
-    return merged
+        existing = ordered[existing_index]
+        if result.get("similarity", 0) > existing.get("similarity", 0):
+            ordered[existing_index] = result
+
+    return ordered
 
 
 def _build_query_variants(query: str) -> list[str]:
