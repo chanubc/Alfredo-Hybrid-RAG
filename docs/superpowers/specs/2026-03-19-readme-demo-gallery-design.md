@@ -54,10 +54,10 @@
 ```
 
 ### 시각 배치 원칙
-- Dashboard 이미지는 가로형 비율이 강하므로, 구현 시 **2열 배치가 기본 추천안**이다.
-- 다만 README 렌더링 결과를 보고 **3열 또는 3행×3열에 준하는 구성**을 시도할 수는 있다.
-- 최종 기준은 “동일 폭으로 무리 없이 읽히는가”이며, 이미지가 지나치게 작아지면 2열로 낮춘다.
-- Notion screenshot block도 Dashboard와 같은 표 레이아웃 계열을 사용해 시각 통일감을 유지한다.
+- Dashboard 이미지는 가로형 비율이 강하므로, 구현 기본값은 **2열 배치**다.
+- 3열 배치는 구현자가 로컬 미리보기 또는 GitHub README 렌더링 기준으로 확인했을 때, 각 이미지의 핵심 UI 텍스트와 카드 구분이 무리 없이 보이는 경우에만 허용한다.
+- 위 조건을 만족하지 못하면 자동으로 2열을 사용한다.
+- Notion screenshot block도 동일한 HTML table 계열 레이아웃을 사용하되, 이미지 수가 1장이면 단일 이미지, 2장 이상이면 2열 우선 배치를 사용한다.
 
 ### 문체 원칙
 - 과장된 포트폴리오 톤이 아니라 **기술 README 톤 유지**
@@ -83,11 +83,11 @@
 허용 변경:
 - 각 이미지 아래 캡션 문구 정리
 - 제목/alt text/섹션 소제목의 표현 다듬기
-- 필요 시 `weekly-report-detail` 이미지 활용 여부 검토
 
 비허용 변경:
 - 모바일 데모를 별도 섹션으로 분해하는 대규모 구조 변경
 - Mermaid/architecture 영역과 섞는 변경
+- `telegram-weekly-report-detail.jpg`를 기존 모바일 Demo 블록에 추가하는 변경
 
 #### 블록 B — Notion Screenshot Gallery (신규)
 Telegram에서 저장된 링크가 Notion DB에서 어떻게 구조화되는지 보여주는 별도 갤러리 블록을 추가한다.
@@ -129,6 +129,33 @@ Telegram에서 저장된 링크가 Notion DB에서 어떻게 구조화되는지 
 사용자가 현재 제공한 Dashboard 이미지 소스:
 - GitHub user-attachments 기반 6장
 - 구현 단계에서 로컬 asset으로 저장 후 README에 연결 필요
+
+---
+
+## 확정된 자산 매핑
+
+### A. Notion gallery
+현재 사용자 제공 기준으로 **Notion screenshot 1장**을 사용한다.
+
+| Source | Target repo path | 역할 | Caption 방향 | Alt text 방향 |
+|---|---|---|---|---|
+| `https://github.com/user-attachments/assets/5477af21-1368-43b8-b68a-12758125a396` | `docs/assets/screenshots/notion-db-overview.png` | Notion DB overview 화면 | 저장된 링크, 요약, 메타데이터가 구조화된 knowledge archive | `Notion knowledge archive overview` |
+
+### B. Dashboard gallery
+현재 사용자 제공 기준으로 **Dashboard screenshot 6장**을 사용한다.
+
+| Source | Target repo path | 역할 |
+|---|---|---|
+| `https://github.com/user-attachments/assets/ebe04969-ca68-4e8c-94db-1587bf71bd86` | `docs/assets/screenshots/dashboard-overview-1.png` | Dashboard overview / summary view |
+| `https://github.com/user-attachments/assets/c83e52c3-5e79-4fc6-aab3-fc179adbef37` | `docs/assets/screenshots/dashboard-overview-2.png` | Dashboard secondary overview / list or insight view |
+| `https://github.com/user-attachments/assets/373a1fe0-0222-4435-8028-d3c77f55f3a3` | `docs/assets/screenshots/dashboard-overview-3.png` | Dashboard exploration / metrics view |
+| `https://github.com/user-attachments/assets/b4dc261a-eb4e-486a-8138-605161ec8030` | `docs/assets/screenshots/dashboard-overview-4.png` | Dashboard trend / insight detail view |
+| `https://github.com/user-attachments/assets/25a5d5c5-f759-441e-a1ae-86301f364332` | `docs/assets/screenshots/dashboard-overview-5.png` | Dashboard discover / analysis view |
+| `https://github.com/user-attachments/assets/1490c0d9-00c4-4cdb-8329-6bfc317c3764` | `docs/assets/screenshots/dashboard-overview-6.png` | Dashboard library / retrieval support view |
+
+구현 메모:
+- Dashboard 캡션은 구현 시 실제 화면 내용을 보고 더 정확한 이름으로 다듬을 수 있다.
+- 다만 README 구조상 6장을 모두 포함하는 것은 확정 범위다.
 
 ---
 
@@ -174,6 +201,17 @@ Telegram에서 저장된 링크가 Notion DB에서 어떻게 구조화되는지 
 현재 문제:
 - 이미지 하단 설명이 dense/sparse/reranking 요소를 단순 나열하는 수준이라, 실제 효용이 약하게 전달된다.
 
+### 수정 대상 범위
+이번 작업에서 Hybrid RAG 관련 문구 수정 범위는 아래 두 곳으로 한정한다.
+
+1. `## Demo` 내 `Hybrid RAG (Dense + Sparse)` 카드의 캡션
+2. `### Hybrid RAG Architecture` 바로 아래의 본문 설명 문단
+
+이번 작업에서 **수정하지 않는 위치**:
+- `## Core Features` 표의 Hybrid RAG 항목
+- `### Why These Matter Most` 내 Hybrid RAG 항목
+- `Workflow` / `Architecture` 섹션의 기존 기술 설명
+
 수정 목표:
 - Dense retrieval과 sparse retrieval의 상보성을 짧고 정확하게 설명
 - 왜 이 조합이 `/search`, `/ask`, 추천/리포트 품질에 중요한지 연결
@@ -213,10 +251,12 @@ Telegram에서 저장된 링크가 Notion DB에서 어떻게 구조화되는지 
 1. 기존 모바일 Demo 블록이 유지된다.
 2. Notion screenshot block이 별도로 추가된다.
 3. Dashboard screenshot block이 별도로 추가된다.
-4. Dashboard block은 가로형 이미지가 읽기 어려울 정도로 축소되지 않는다.
-5. Demo 전체가 README 상단에서 시각적으로 더 정돈되어 보인다.
-6. Hybrid RAG 설명이 “구성 나열”이 아니라 “검색 품질에 왜 중요한지”를 설명한다.
-7. README 전체 톤은 여전히 기술 문서 스타일을 유지한다.
+4. Notion block은 현재 확정된 1장 자산을 사용한다.
+5. Dashboard block은 현재 확정된 6장 자산을 모두 사용한다.
+6. Dashboard 갤러리는 기본적으로 2열을 사용하고, 3열은 각 이미지의 핵심 UI 텍스트와 카드 구분이 충분히 읽힐 때만 허용된다.
+7. Hybrid RAG 설명 수정은 Demo 카드 캡션과 `### Hybrid RAG Architecture` 아래 설명 문단에만 반영된다.
+8. Hybrid RAG 설명이 “구성 나열”이 아니라 “검색 품질에 왜 중요한지”를 설명한다.
+9. README 전체 톤은 여전히 기술 문서 스타일을 유지한다.
 
 ---
 
