@@ -13,12 +13,9 @@
   </tr>
 </table>
 
-[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-Async-green)](https://fastapi.tiangolo.com/)
-[![LangGraph](https://img.shields.io/badge/LangGraph-Orchestration-000000?logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/)
-[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![MIT License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
+[![LangGraph](https://img.shields.io/badge/LangGraph-Orchestration-000000?logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/) [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue)](https://www.python.org/downloads/) [![FastAPI](https://img.shields.io/badge/FastAPI-Async-green)](https://fastapi.tiangolo.com/) [![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?logo=docker&logoColor=white)](https://www.docker.com/) [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/) [![GCP](https://img.shields.io/badge/GCP-Cloud-4285F4?logo=googlecloud&logoColor=white)](https://cloud.google.com/) [![MIT License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
+
+[![Telegram](https://img.shields.io/badge/Telegram-Bot-26A5E4?logo=telegram&logoColor=white)](https://telegram.org/) [![Notion](https://img.shields.io/badge/Notion-Workspace-000000?logo=notion&logoColor=white)](https://www.notion.so/) [![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/) [![Hybrid RAG](https://img.shields.io/badge/Hybrid%20RAG-Dense%2BSparse-7B61FF)]()
 
 ## Demo
 
