@@ -1,24 +1,24 @@
 # Alfredo
 
-> Proactive AI Knowledge Copilot — Store user-shared links, convert to structured knowledge, detect interest drift, send proactive insights
-
-[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-Async-green)](https://fastapi.tiangolo.com/)
-[![MIT License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-
 <table>
   <tr>
-    <td valign="middle">
-      <strong>Proactive AI Knowledge Copilot</strong><br />
-      Store user-shared links, convert to structured knowledge, detect interest drift, send proactive insights
+    <td valign="middle" width="112">
+      <img src="docs/assets/alfredo_logo.png" alt="Alfredo logo" width="96" />
     </td>
-    <td valign="middle" align="right">
-      <img src="docs/assets/alfredo_log.png" alt="Alfredo logo" width="96" />
+    <td valign="middle">
+      <blockquote>
+        <p><strong>Proactive AI Knowledge Copilot</strong><br />Store user-shared links, convert to structured knowledge, detect interest drift, and send proactive insights</p>
+      </blockquote>
     </td>
   </tr>
 </table>
 
----
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Async-green)](https://fastapi.tiangolo.com/)
+[![LangGraph](https://img.shields.io/badge/LangGraph-Orchestration-000000?logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/)
+[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![MIT License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 ## Demo
 
