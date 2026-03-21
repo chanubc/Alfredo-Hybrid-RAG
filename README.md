@@ -6,10 +6,11 @@
 Store user-shared links, convert them into structured knowledge,  
 detect interest drift, and deliver proactive insights
 
-[![Try on Telegram](https://img.shields.io/badge/Try%20on-Telegram-26A5E4?logo=telegram&logoColor=white)](https://t.me/linkd_rag_bot?start=demo)
+[![Try on Telegram](https://img.shields.io/badge/Try%20on-Telegram-26A5E4?logo=telegram&logoColor=white)](https://t.me/linkd_rag_bot?start=demo) 
+<br clear="left"/>
 
-👉 Telegram: @linkd_rag_bot  
-👉 Or open directly: https://t.me/linkd_rag_bot
+🚀 **Turn your saved links into actionable knowledge**  
+Bot: [@linkd_rag_bot](https://t.me/linkd_rag_bot)
 
 [![LangGraph](https://img.shields.io/badge/LangGraph-Orchestration-000000?logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/)
 [![LangChain](https://img.shields.io/badge/LangChain-Agents-1C3C3C?logo=langchain&logoColor=white)](https://www.langchain.com/)
