@@ -18,12 +18,9 @@ async def lifespan(app: FastAPI):
     telegram_repo = get_telegram_client()
     try:
         await telegram_repo.set_webhook(settings.TELEGRAM_WEBHOOK_URL)
-        logger.info("Telegram webhook registered to %s", settings.TELEGRAM_WEBHOOK_URL)
+        logger.info("Telegram webhook registration succeeded")
     except Exception:
-        logger.exception(
-            "Failed to register Telegram webhook to %s",
-            settings.TELEGRAM_WEBHOOK_URL,
-        )
+        logger.exception("Telegram webhook registration failed")
     success = await telegram_repo.register_commands()
     if success:
         logger.info("✅ Telegram bot commands registered successfully")
