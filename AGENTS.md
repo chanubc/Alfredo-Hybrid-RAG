@@ -58,3 +58,13 @@ For feature/issue/branch startup workflow, use:
 
 - `.claude/commands/start-feature.md`
 - `.agents/skills/start-feature/SKILL.md`
+
+## GitNexus workflow
+
+- This repo is indexed in GitNexus as `LinkdBot-RAG`
+- prefer `gitnexus_query` or `gitnexus_context` before broad grep when the task is "how does this work?", "where is this used?", or "what calls this?"
+- run `gitnexus_impact` before changing shared functions, classes, repository methods, or routing logic
+- run `gitnexus_context` plus `gitnexus_impact` before refactor, extract, move, or rename work
+- run `gitnexus_detect_changes` before finishing larger code changes to confirm the expected scope
+- use `rg` for raw text lookup, exact strings, and quick file discovery; use GitNexus for relationships, blast radius, and execution flow
+- if GitNexus results look stale relative to the current branch, refresh the index with `npx gitnexus analyze` before relying on it
