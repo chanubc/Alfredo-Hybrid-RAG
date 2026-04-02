@@ -3,6 +3,7 @@
 매주 월요일 09:00 KST (= 00:00 UTC) 실행.
 FastAPI lifespan에서 start/stop.
 """
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -34,3 +35,17 @@ async def _run_weekly_report() -> None:
             logger.info("Weekly report job completed successfully")
         except Exception as exc:
             logger.exception(f"Weekly report job failed: {exc}")
+
+
+async def run_weekly_report_startup_catch_up() -> None:
+    """앱 시작 시 이번 주 주간 리포트 누락분이 있으면 보충 발송."""
+    from app.api.dependencies.report_di import build_weekly_report_usecase
+    from app.infrastructure.database import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as session:
+        try:
+            usecase = build_weekly_report_usecase(session)
+            await usecase.execute_startup_catch_up()
+            logger.info("Weekly report startup catch-up completed")
+        except Exception as exc:
+            logger.exception(f"Weekly report startup catch-up failed: {exc}")

@@ -29,3 +29,16 @@ class RecommendationRepository(IRecommendationRepository):
             )
         )
         return list(result.scalars().all())
+
+    async def has_recommendation_since(
+        self,
+        user_id: int,
+        since: datetime,
+    ) -> bool:
+        result = await self._db.execute(
+            select(Recommendation.id).where(
+                Recommendation.user_id == user_id,
+                Recommendation.recommended_at >= since,
+            ).limit(1)
+        )
+        return result.scalar_one_or_none() is not None

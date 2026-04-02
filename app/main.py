@@ -6,10 +6,10 @@ from app.core.logger import logger, setup_logging
 
 setup_logging()
 
-from app.api.v1.endpoints import auth, dashboard, search, webhook
 from app.api.dependencies.auth_di import get_telegram_client
+from app.api.v1.endpoints import auth, dashboard, search, webhook
 from app.core.config import settings
-from app.infrastructure.scheduler import create_scheduler
+from app.infrastructure.scheduler import create_scheduler, run_weekly_report_startup_catch_up
 
 
 @asynccontextmanager
@@ -30,6 +30,7 @@ async def lifespan(app: FastAPI):
     scheduler = create_scheduler()
     scheduler.start()
     logger.info("✅ Weekly report scheduler started")
+    await run_weekly_report_startup_catch_up()
 
     yield
 
