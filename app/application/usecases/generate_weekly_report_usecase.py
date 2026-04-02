@@ -33,6 +33,7 @@ class GenerateWeeklyReportUseCase:
         self._telegram = telegram
 
     async def execute_for_all_users(self) -> None:
+        """Run the weekly report job for every known user."""
         users = await self._user_repo.get_all_users()
         for user in users:
             try:
@@ -42,10 +43,12 @@ class GenerateWeeklyReportUseCase:
                 logger.exception(f"Weekly report failed for user {user.telegram_id}: {exc}")
 
     async def execute(self, user_id: int) -> None:
+        """Generate and send a weekly report to a single user."""
         now = datetime.now(timezone.utc)
         week_ago = now - timedelta(days=7)
         month_ago = now - timedelta(days=30)
 
+        # 1. Measure interest drift using the last 7 days vs the prior 23 days.
         current_cats = await self._link_repo.get_categories_by_period(user_id, week_ago, now)
         past_cats = await self._link_repo.get_categories_by_period(user_id, month_ago, week_ago)
         if len(current_cats) >= 3:
@@ -53,6 +56,7 @@ class GenerateWeeklyReportUseCase:
         else:
             tvd, delta = 0.0, {}
 
+        # 2. Build the user's current interest centroid, with a full-history fallback.
         recent_embs = await self._link_repo.get_summary_embeddings_by_period(user_id, week_ago, now)
         if not recent_embs:
             recent_embs = await self._link_repo.get_all_summary_embeddings(user_id)
@@ -62,7 +66,10 @@ class GenerateWeeklyReportUseCase:
             logger.info(f"User {user_id} has no embeddings, skipping weekly report")
             return
 
+        # 3. Exclude links that were already recommended recently.
         excluded_ids = await self._rec_repo.get_recently_recommended_link_ids(user_id, within_days=14)
+
+        # 4. Pick the best stale unread link to reactivate.
         candidates = await self._link_repo.get_reactivation_candidates(
             user_id,
             older_than_days=7,
@@ -74,10 +81,12 @@ class GenerateWeeklyReportUseCase:
             logger.info(f"User {user_id} has no reactivation candidates, skipping")
             return
 
+        # 5. Ask the LLM to turn the data into a short weekly briefing.
         briefing = await self._openai.generate_briefing(
             _build_briefing_prompt(best, tvd, delta, current_cats)
         )
 
+        # 6. Send the report via Telegram and include a mark-read action.
         message = _build_report_message(briefing, best)
         await self._telegram.send_weekly_report(
             chat_id=user_id,
@@ -85,6 +94,7 @@ class GenerateWeeklyReportUseCase:
             link_id=best["link_id"],
         )
 
+        # 7. Persist the recommendation only after the delivery succeeds.
         await self._rec_repo.record(link_id=best["link_id"], user_id=user_id)
         await self._db.commit()
 
@@ -107,9 +117,9 @@ def _build_briefing_prompt(
         )[:2]
         drift_lines = []
         for category, change in top_gains:
-            drift_lines.append(f"  - {category} (+{change:.0%})")
+            drift_lines.append(f"  ▲ {category} (+{change:.0%})")
         for category, change in top_losses:
-            drift_lines.append(f"  - {category} ({change:.0%})")
+            drift_lines.append(f"  ▼ {category} ({change:.0%})")
         drift_summary = "Interest drift:\n" + "\n".join(drift_lines)
     else:
         drift_summary = "Interest drift: stable (no significant change)"
