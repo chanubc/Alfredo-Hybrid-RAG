@@ -66,20 +66,14 @@ class GenerateWeeklyReportUseCase:
             return
 
         sent_since = send_anchor.astimezone(timezone.utc)
-        users = await self._user_repo.get_all_users()
-        for user in users:
+        user_ids = await self._rec_repo.get_user_ids_without_recommendation_since(sent_since)
+        for user_id in user_ids:
             try:
-                already_sent = await self._rec_repo.has_recommendation_since(
-                    user.telegram_id,
-                    sent_since,
-                )
-                if already_sent:
-                    continue
-                await self.execute(user.telegram_id)
+                await self.execute(user_id)
             except Exception as exc:
                 await self._db.rollback()
                 logger.exception(
-                    f"Weekly report catch-up failed for user {user.telegram_id}: {exc}"
+                    f"Weekly report catch-up failed for user {user_id}: {exc}"
                 )
 
     async def execute(self, user_id: int) -> None:

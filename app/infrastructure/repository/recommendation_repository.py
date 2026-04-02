@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.repositories.i_recommendation_repository import IRecommendationRepository
 from app.models.recommendation import Recommendation
+from app.models.user import User
 
 
 class RecommendationRepository(IRecommendationRepository):
@@ -30,15 +31,16 @@ class RecommendationRepository(IRecommendationRepository):
         )
         return list(result.scalars().all())
 
-    async def has_recommendation_since(
+    async def get_user_ids_without_recommendation_since(
         self,
-        user_id: int,
         since: datetime,
-    ) -> bool:
-        result = await self._db.execute(
-            select(Recommendation.id).where(
-                Recommendation.user_id == user_id,
-                Recommendation.recommended_at >= since,
-            ).limit(1)
+    ) -> list[int]:
+        subquery = (
+            select(Recommendation.user_id)
+            .where(Recommendation.recommended_at >= since)
+            .distinct()
         )
-        return result.scalar_one_or_none() is not None
+        result = await self._db.execute(
+            select(User.telegram_id).where(User.telegram_id.not_in(subquery))
+        )
+        return list(result.scalars().all())

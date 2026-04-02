@@ -1,15 +1,9 @@
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from app.application.usecases.generate_weekly_report_usecase import GenerateWeeklyReportUseCase
-
-
-def _make_user(telegram_id: int) -> MagicMock:
-    user = MagicMock()
-    user.telegram_id = telegram_id
-    return user
 
 
 @pytest.fixture
@@ -30,26 +24,24 @@ def catchup_usecase(catchup_dependencies) -> GenerateWeeklyReportUseCase:
 
 
 @pytest.mark.asyncio
-async def test_startup_catch_up_sends_only_users_missing_this_weeks_report(
+async def test_startup_catch_up_uses_single_query_for_users_missing_this_weeks_report(
     catchup_usecase,
     catchup_dependencies,
 ):
-    catchup_dependencies["user_repo"].get_all_users.return_value = [
-        _make_user(111),
-        _make_user(222),
-    ]
-    catchup_dependencies["rec_repo"].has_recommendation_since.side_effect = [False, True]
+    catchup_dependencies["rec_repo"].get_user_ids_without_recommendation_since.return_value = [111, 222]
 
     with patch.object(catchup_usecase, "execute", new=AsyncMock()) as mock_execute:
         await catchup_usecase.execute_startup_catch_up(
             now=datetime(2026, 3, 31, 1, 0, tzinfo=timezone.utc)
         )
 
-    catchup_dependencies["rec_repo"].has_recommendation_since.assert_any_await(
-        111,
-        datetime(2026, 3, 30, 0, 0, tzinfo=timezone.utc),
+    catchup_dependencies["rec_repo"].get_user_ids_without_recommendation_since.assert_awaited_once_with(
+        datetime(2026, 3, 30, 0, 0, tzinfo=timezone.utc)
     )
-    mock_execute.assert_awaited_once_with(111)
+    assert mock_execute.await_count == 2
+    mock_execute.assert_any_await(111)
+    mock_execute.assert_any_await(222)
+    catchup_dependencies["user_repo"].get_all_users.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -62,8 +54,7 @@ async def test_startup_catch_up_skips_before_monday_9am_kst(
             now=datetime(2026, 3, 29, 23, 59, tzinfo=timezone.utc)
         )
 
-    catchup_dependencies["user_repo"].get_all_users.assert_not_called()
-    catchup_dependencies["rec_repo"].has_recommendation_since.assert_not_called()
+    catchup_dependencies["rec_repo"].get_user_ids_without_recommendation_since.assert_not_called()
     mock_execute.assert_not_called()
 
 
@@ -72,11 +63,7 @@ async def test_startup_catch_up_rolls_back_and_continues_on_user_failure(
     catchup_usecase,
     catchup_dependencies,
 ):
-    catchup_dependencies["user_repo"].get_all_users.return_value = [
-        _make_user(111),
-        _make_user(222),
-    ]
-    catchup_dependencies["rec_repo"].has_recommendation_since.side_effect = [False, False]
+    catchup_dependencies["rec_repo"].get_user_ids_without_recommendation_since.return_value = [111, 222]
 
     async def _execute_side_effect(user_id: int) -> None:
         if user_id == 111:

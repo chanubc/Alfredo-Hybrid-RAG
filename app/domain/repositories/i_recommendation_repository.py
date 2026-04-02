@@ -20,10 +20,9 @@ class IRecommendationRepository(ABC):
         ...
 
     @abstractmethod
-    async def has_recommendation_since(
+    async def get_user_ids_without_recommendation_since(
         self,
-        user_id: int,
         since: datetime,
-    ) -> bool:
-        """주어진 시점 이후 추천 기록이 있는지 반환."""
+    ) -> list[int]:
+        """주어진 시점 이후 추천 기록이 없는 유저 ID 목록 반환."""
         ...
