@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.repositories.i_recommendation_repository import IRecommendationRepository
 from app.models.recommendation import Recommendation
+from app.models.user import User
 
 
 class RecommendationRepository(IRecommendationRepository):
@@ -27,5 +28,19 @@ class RecommendationRepository(IRecommendationRepository):
                 Recommendation.user_id == user_id,
                 Recommendation.recommended_at >= cutoff,
             )
+        )
+        return list(result.scalars().all())
+
+    async def get_user_ids_without_recommendation_since(
+        self,
+        since: datetime,
+    ) -> list[int]:
+        subquery = (
+            select(Recommendation.user_id)
+            .where(Recommendation.recommended_at >= since)
+            .distinct()
+        )
+        result = await self._db.execute(
+            select(User.telegram_id).where(User.telegram_id.not_in(subquery))
         )
         return list(result.scalars().all())

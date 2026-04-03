@@ -1,10 +1,13 @@
 """GenerateWeeklyReportUseCase 단위 테스트."""
-import pytest
+
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from app.application.usecases.generate_weekly_report_usecase import (
     GenerateWeeklyReportUseCase,
+    _build_report_message,
 )
 
 
@@ -273,3 +276,14 @@ async def test_send_weekly_report_parameters(usecase, mock_dependencies):
     assert call_kwargs["link_id"] == 42
     assert "이번 주 지식 리포트" in call_kwargs["text"]
     assert "이번 주 브리핑 텍스트" in call_kwargs["text"]
+
+
+def test_build_report_message_uses_well_formed_html_labels():
+    candidate = _make_candidate(title="중요한 링크", url="https://test.com")
+
+    message = _build_report_message("이번 주 브리핑 텍스트", candidate)
+
+    assert "<b>이번 주 지식 리포트</b>" in message
+    assert "<b>다시 보기 추천</b>" in message
+    assert "<b>중요한 링크</b>" in message
+    assert message.count("<b>") == message.count("</b>")

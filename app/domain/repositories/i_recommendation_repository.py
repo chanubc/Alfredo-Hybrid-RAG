@@ -18,3 +18,11 @@ class IRecommendationRepository(ABC):
     ) -> list[int]:
         """최근 N일 이내 이미 추천된 link_id 목록 반환 (중복 추천 방지용)."""
         ...
+
+    @abstractmethod
+    async def get_user_ids_without_recommendation_since(
+        self,
+        since: datetime,
+    ) -> list[int]:
+        """주어진 시점 이후 추천 기록이 없는 유저 ID 목록 반환."""
+        ...

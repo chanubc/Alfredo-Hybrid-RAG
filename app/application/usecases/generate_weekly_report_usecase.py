@@ -9,20 +9,23 @@ Flow:
 6. Telegram 푸시 (읽음 처리 버튼 포함)
 7. 추천 이력 기록 + DB 커밋
 """
+
 import html
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.ports.ai_analysis_port import AIAnalysisPort
 from app.application.ports.telegram_port import TelegramPort
+from app.core.logger import logger
 from app.domain.drift import calculate_drift
 from app.domain.repositories.i_link_repository import ILinkRepository
 from app.domain.repositories.i_recommendation_repository import IRecommendationRepository
 from app.domain.repositories.i_user_repository import IUserRepository
 from app.domain.scoring import compute_interest_centroid, select_reactivation_link
 
-from app.core.logger import logger
+KST = ZoneInfo("Asia/Seoul")
 
 
 class GenerateWeeklyReportUseCase:
@@ -54,6 +57,25 @@ class GenerateWeeklyReportUseCase:
                     f"Weekly report failed for user {user.telegram_id}: {exc}"
                 )
 
+    async def execute_startup_catch_up(self, now: datetime | None = None) -> None:
+        """앱 시작 시 이번 주 주간 리포트 누락분이 있으면 보충 발송."""
+        effective_now = now or datetime.now(timezone.utc)
+        send_anchor = _current_week_send_anchor(effective_now)
+        if effective_now.astimezone(KST) < send_anchor:
+            logger.info("Weekly report catch-up skipped before this week's Monday 09:00 KST")
+            return
+
+        sent_since = send_anchor.astimezone(timezone.utc)
+        user_ids = await self._rec_repo.get_user_ids_without_recommendation_since(sent_since)
+        for user_id in user_ids:
+            try:
+                await self.execute(user_id)
+            except Exception as exc:
+                await self._db.rollback()
+                logger.exception(
+                    f"Weekly report catch-up failed for user {user_id}: {exc}"
+                )
+
     async def execute(self, user_id: int) -> None:
         """단일 유저 주간 리포트 생성 및 전송."""
         now = datetime.now(timezone.utc)
@@ -83,7 +105,9 @@ class GenerateWeeklyReportUseCase:
 
         # 4. 재활성화 후보 조회 + 최적 링크 선정
         candidates = await self._link_repo.get_reactivation_candidates(
-            user_id, older_than_days=7, excluded_ids=excluded_ids
+            user_id,
+            older_than_days=7,
+            excluded_ids=excluded_ids,
         )
         best = select_reactivation_link(candidates, centroid)
 
@@ -96,7 +120,7 @@ class GenerateWeeklyReportUseCase:
             _build_briefing_prompt(best, tvd, delta, current_cats)
         )
 
-        # 6. Telegram 전송 (읽음 처리 버튼 포함)
+        # 6. Telegram 푸시 (읽음 처리 버튼 포함)
         message = _build_report_message(briefing, best)
         await self._telegram.send_weekly_report(
             chat_id=user_id,
@@ -104,7 +128,7 @@ class GenerateWeeklyReportUseCase:
             link_id=best["link_id"],
         )
 
-        # 7. 추천 이력 기록 + 단일 커밋
+        # 7. 추천 이력 기록 + DB 커밋
         await self._rec_repo.record(link_id=best["link_id"], user_id=user_id)
         await self._db.commit()
 
@@ -166,3 +190,9 @@ def _build_report_message(briefing: str, best: dict) -> str:
         f"📌 <b>다시 보기 추천</b>\n"
         f"<b>{title}</b>{url_line}"
     )
+
+
+def _current_week_send_anchor(now: datetime) -> datetime:
+    local_now = now.astimezone(KST)
+    monday = local_now - timedelta(days=local_now.weekday())
+    return monday.replace(hour=9, minute=0, second=0, microsecond=0)
